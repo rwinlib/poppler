@@ -14,6 +14,7 @@
 // Copyright (C) 2007-2009, 2011 Albert Astals Cid <aacid@kde.org>
 // Copyright (C) 2009 Petr Gajdos <pgajdos@novell.com>
 // Copyright (C) 2011 Andreas Hartmetz <ahartmetz@gmail.com>
+// Copyright (C) 2017 Adrian Johnson <ajohnson@redneon.com>
 //
 // To see a description of the changes please see the Changelog file that
 // came with your tarball or type make ChangeLog if you are building from git
@@ -24,8 +25,6 @@
 #define SPLASHFTFONT_H
 
 #include "poppler-config.h"
-
-#if HAVE_FREETYPE_FREETYPE_H || HAVE_FREETYPE_H
 
 #ifdef USE_GCC_PRAGMAS
 #pragma interface
@@ -74,7 +73,5 @@ private:
   GBool enableFreeTypeHinting;
   GBool enableSlightHinting;
 };
-
-#endif // HAVE_FREETYPE_FREETYPE_H || HAVE_FREETYPE_H
 
 #endif

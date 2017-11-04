@@ -24,7 +24,7 @@
 // Copyright (C) 2010 Srinivas Adicherla <srinivas.adicherla@geodesic.com>
 // Copyright (C) 2011, 2013, 2014, 2016 Thomas Freitag <Thomas.Freitag@alfa.de>
 // Copyright (C) 2012 Fabio D'Urso <fabiodurso@hotmail.it>
-// Copyright (C) 2013 Adrian Johnson <ajohnson@redneon.com>
+// Copyright (C) 2013, 2017 Adrian Johnson <ajohnson@redneon.com>
 // Copyright (C) 2013 Adam Reichold <adamreichold@myopera.com>
 // Copyright (C) 2013 Adrian Perez de Castro <aperez@igalia.com>
 // Copyright (C) 2015 André Guerreiro <aguerreiro1985@gmail.com>
@@ -229,12 +229,12 @@ public:
   GBool isLinearized(GBool tryingToReconstruct = gFalse);
 
   // Return the document's Info dictionary (if any).
-  Object *getDocInfo(Object *obj) { return xref->getDocInfo(obj); }
-  Object *getDocInfoNF(Object *obj) { return xref->getDocInfoNF(obj); }
+  Object getDocInfo() { return xref->getDocInfo(); }
+  Object getDocInfoNF() { return xref->getDocInfoNF(); }
 
   // Create and return the document's Info dictionary if none exists.
   // Otherwise return the existing one.
-  Object *createDocInfoIfNoneExists(Object *obj) { return xref->createDocInfoIfNoneExists(obj); }
+  Object createDocInfoIfNoneExists() { return xref->createDocInfoIfNoneExists(); }
 
   // Remove the document's Info dictionary and update the trailer dictionary.
   void removeDocInfo() { xref->removeDocInfo(); }
@@ -301,12 +301,11 @@ public:
                            CryptAlgorithm encAlgorithm, int keyLength, int objNum, int objGen, std::set<Dict*> *alreadyWrittenDicts = nullptr);
   static void writeHeader(OutStream *outStr, int major, int minor);
 
-  // Ownership goes to the caller
-  static Dict *createTrailerDict (int uxrefSize, GBool incrUpdate, Goffset startxRef,
+  static Object createTrailerDict (int uxrefSize, GBool incrUpdate, Goffset startxRef,
                                   Ref *root, XRef *xRef, const char *fileName, Goffset fileSize);
-  static void writeXRefTableTrailer (Dict *trailerDict, XRef *uxref, GBool writeAllEntries,
+  static void writeXRefTableTrailer (Object &&trailerDict, XRef *uxref, GBool writeAllEntries,
                                      Goffset uxrefOffset, OutStream* outStr, XRef *xRef);
-  static void writeXRefStreamTrailer (Dict *trailerDict, XRef *uxref, Ref *uxrefStreamRef,
+  static void writeXRefStreamTrailer (Object &&trailerDict, XRef *uxref, Ref *uxrefStreamRef,
                                       Goffset uxrefOffset, OutStream* outStr, XRef *xRef);
 
 private:
@@ -383,7 +382,7 @@ private:
   int fopenErrno;
 
   Goffset startXRefPos;		// offset of last xref table
-#if MULTITHREADED
+#ifdef MULTITHREADED
   GooMutex mutex;
 #endif
 };

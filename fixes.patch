@@ -1,0 +1,46 @@
+diff -aurp poppler-0.61.0-orig/CMakeLists.txt poppler-0.61.0/CMakeLists.txt
+--- poppler-0.61.0-orig/CMakeLists.txt	2018-06-27 10:55:41.174773200 +0000
++++ poppler-0.61.0/CMakeLists.txt	2018-06-27 10:56:39.260748500 +0000
+@@ -542,12 +542,7 @@ add_definitions(-D_CRT_SECURE_NO_WARNING
+ set(CMAKE_CXX_FLAGS "/Zc:wchar_t- ${CMAKE_CXX_FLAGS}")
+ add_library(poppler STATIC ${poppler_SRCS})
+ else()
+-add_library(poppler ${poppler_SRCS})
+-endif()
+-set_target_properties(poppler PROPERTIES VERSION 72.0.0 SOVERSION 72)
+-if(MINGW)
+-    get_target_property(POPPLER_SOVERSION poppler SOVERSION)
+-    set_target_properties(poppler PROPERTIES SUFFIX "-${POPPLER_SOVERSION}${CMAKE_SHARED_LIBRARY_SUFFIX}")
++add_library(poppler STATIC ${poppler_SRCS})
+ endif()
+ target_link_libraries(poppler LINK_PRIVATE ${poppler_LIBS})
+ if(CMAKE_USE_PTHREADS_INIT)
+diff -aurp poppler-0.61.0-orig/cpp/CMakeLists.txt poppler-0.61.0/cpp/CMakeLists.txt
+--- poppler-0.61.0-orig/cpp/CMakeLists.txt	2018-06-27 10:55:41.346711300 +0000
++++ poppler-0.61.0/cpp/CMakeLists.txt	2018-06-27 10:56:51.676781400 +0000
+@@ -22,12 +22,7 @@ set(poppler_cpp_SRCS
+   poppler-version.cpp
+ )
+ 
+-add_library(poppler-cpp SHARED ${poppler_cpp_SRCS})
+-set_target_properties(poppler-cpp PROPERTIES VERSION 0.3.0 SOVERSION 0)
+-if(MINGW)
+-    get_target_property(POPPLER_CPP_SOVERSION poppler-cpp SOVERSION)
+-    set_target_properties(poppler-cpp PROPERTIES SUFFIX "-${POPPLER_CPP_SOVERSION}${CMAKE_SHARED_LIBRARY_SUFFIX}")
+-endif()
++add_library(poppler-cpp STATIC ${poppler_cpp_SRCS})
+ target_link_libraries(poppler-cpp poppler ${ICONV_LIBRARIES})
+ install(TARGETS poppler-cpp RUNTIME DESTINATION bin LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
+ 
+diff -aurp poppler-0.61.0-orig/cpp/poppler-image.cpp poppler-0.61.0/cpp/poppler-image.cpp
+--- poppler-0.61.0-orig/cpp/poppler-image.cpp	2018-06-27 10:55:41.346711300 +0000
++++ poppler-0.61.0/cpp/poppler-image.cpp	2018-06-27 10:57:11.635339600 +0000
+@@ -371,7 +371,7 @@ bool image::save(const std::string &file
+     if (!w.get()) {
+         return false;
+     }
+-    FILE *f = fopen(file_name.c_str(), "w");
++    FILE *f = fopen(file_name.c_str(), "wb");
+     if (!f) {
+         return false;
+     }

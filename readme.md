@@ -1,6 +1,6 @@
 # Poppler 0.61.0
 
-Applied 2 patches:
+Applied patch [fixes.patch](fixes.patch) that does this:
 
  - fix static linking with cmake: [patch](https://lists.freedesktop.org/archives/poppler/2017-November/012652.html)
  - replace `"w"` with `"wb"` in poppler-image.cpp: [patch](https://bugs.freedesktop.org/show_bug.cgi?id=102494)
@@ -9,33 +9,31 @@ We need to build with `-Dpoppler_cpp_EXPORTS -DOPJ_STATIC` for static linking. I
 
 ## Build Script
 
-```
-#!/bin/sh
-RCONFIG="/c/Progra~1/R/R-3.4.2/bin/x64/R CMD config"
-CXX11="`$RCONFIG CXX11`"
-CXX11STD="`$RCONFIG CXX11STD`"
-export LDFLAGS="-L/mingw64/lib"
-export CPPFLAGS="-I/mingw64/include -DOPJ_STATIC"
-export CXX="$CXX11 $CXX11STD"
-export CXXFLAGS="-Dpoppler_cpp_EXPORTS -DOPJ_STATIC"
-export CC="`$RCONFIG CC`"
-export CFLAGS="-Dpoppler_cpp_EXPORTS -DOPJ_STATIC"
-
-export LIBJPEG_CFLAGS="-I/mingw64/include"
-export LIBS="-L/mingw64/lib"
-export USER_LDFLAGS="-L/mingw64/lib"
-```
-
-Poppler has switched to cmake (e.g. `mingw-w64-x86_64-cmake`) now:
+See also [build.sh](build.sh)
 
 ```
+curl -OL https://poppler.freedesktop.org/poppler-0.61.0.tar.xz
+rm -Rf poppler-0.61.0
+tar -xf poppler-0.61.0.tar.xz
+cd  poppler-0.61.0
+
+patch -p1 -i ../fixes.patch
+
+export CPPFLAGS="-DOPJ_STATIC -Dpoppler_cpp_EXPORTS -I${MINGW_PREFIX}/include/openjpeg-2.2"
+export CFLAGS=$CPPFLAGS
+export CXXFLAGS=$CPPFLAGS
+
 cmake . -G"MSYS Makefiles" \
-	-DCMAKE_INSTALL_PREFIX="/usr/local" \
+	-DLIBOPENJPEG2_LIBRARIES="${MINGW_PREFIX}/lib/libopenjp2.a" \
+	-DLIBOPENJPEG2_INCLUDE_DIR="${MINGW_PREFIX}/include/openjpeg-2.2" \
+	-DCMAKE_INSTALL_PREFIX="${MINGW_PREFIX}" \
 	-DCMAKE_BUILD_TYPE=RELEASE -DENABLE_UTILS=OFF \
 	-DBUILD_CPP_TESTS=OFF -DBUILD_GTK_TESTS=OFF \
 	-DENABLE_QT5=OFF -DENABLE_QT4=OFF -DENABLE_LIBCURL=OFF \
-	-DENABLE_GLIB=OFF -DENABLE_XPDF_HEADERS=ON
+	-DENABLE_GLIB=OFF -DENABLE_XPDF_HEADERS=ON \
+	-DBUILD_TESTS=OFF \
+    -DBUILD_SHARED_LIBS=OFF
 
 make -j8
-make install
+
 ```

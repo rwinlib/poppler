@@ -17,8 +17,10 @@
 //
 // Copyright (C) 2007 Julien Rebetez <julienr@svn.gnome.org>
 // Copyright (C) 2007 Koji Otani <sho@bbr.jp>
-// Copyright (C) 2008, 2011, 2012 Albert Astals Cid <aacid@kde.org>
+// Copyright (C) 2008, 2011, 2012, 2018 Albert Astals Cid <aacid@kde.org>
 // Copyright (C) 2017 Adrian Johnson <ajohnson@redneon.com>
+// Copyright (C) 2018 Klarälvdalens Datakonsult AB, a KDAB Group company, <info@kdab.com>. Work sponsored by the LiMux project of the city of Munich
+// Copyright (C) 2018 Adam Reichold <adam.reichold@t-online.de>
 //
 // To see a description of the changes please see the Changelog file that
 // came with your tarball or type make ChangeLog if you are building from git
@@ -28,17 +30,11 @@
 #ifndef CHARCODETOUNICODE_H
 #define CHARCODETOUNICODE_H
 
-#ifdef USE_GCC_PRAGMAS
-#pragma interface
-#endif
+#include <atomic>
 
 #include "poppler-config.h"
 #include "CharTypes.h"
 #include "goo/gtypes.h"
-
-#ifdef MULTITHREADED
-#include "goo/GooMutex.h"
-#endif
 
 struct CharCodeToUnicodeString;
 class GooString;
@@ -55,7 +51,7 @@ public:
   // Read the CID-to-Unicode mapping for <collection> from the file
   // specified by <fileName>.  Sets the initial reference count to 1.
   // Returns NULL on failure.
-  static CharCodeToUnicode *parseCIDToUnicode(GooString *fileName,
+  static CharCodeToUnicode *parseCIDToUnicode(const char *fileName,
 					      GooString *collection);
 
   // Create a Unicode-to-Unicode mapping from the file specified by
@@ -78,11 +74,14 @@ public:
 
   ~CharCodeToUnicode();
 
+  CharCodeToUnicode(const CharCodeToUnicode &) = delete;
+  CharCodeToUnicode& operator=(const CharCodeToUnicode &) = delete;
+
   void incRefCnt();
   void decRefCnt();
 
   // Return true if this mapping matches the specified <tagA>.
-  GBool match(GooString *tagA);
+  bool match(GooString *tagA);
 
   // Set the mapping for <c>.
   void setMapping(CharCode c, Unicode *u, int len);
@@ -93,7 +92,7 @@ public:
   int mapToUnicode(CharCode c, Unicode **u);
 
   // Map a Unicode to CharCode.
-  int mapToCharCode(Unicode* u, CharCode *c, int usize);
+  int mapToCharCode(Unicode* u, CharCode *c, int usize) const;
 
   // Return the mapping's length, i.e., one more than the max char
   // code supported by the mapping.
@@ -106,7 +105,7 @@ private:
   CharCodeToUnicode();
   CharCodeToUnicode(GooString *tagA);
   CharCodeToUnicode(GooString *tagA, Unicode *mapA,
-		    CharCode mapLenA, GBool copyMap,
+		    CharCode mapLenA, bool copyMap,
 		    CharCodeToUnicodeString *sMapA,
 		    int sMapLenA, int sMapSizeA);
 
@@ -115,11 +114,8 @@ private:
   CharCode mapLen;
   CharCodeToUnicodeString *sMap;
   int sMapLen, sMapSize;
-  int refCnt;
-  GBool isIdentity;
-#ifdef MULTITHREADED
-  GooMutex mutex;
-#endif
+  std::atomic_int refCnt;
+  bool isIdentity;
 };
 
 //------------------------------------------------------------------------
@@ -129,6 +125,9 @@ public:
 
   CharCodeToUnicodeCache(int sizeA);
   ~CharCodeToUnicodeCache();
+
+  CharCodeToUnicodeCache(const CharCodeToUnicodeCache &) = delete;
+  CharCodeToUnicodeCache& operator=(const CharCodeToUnicodeCache &) = delete;
 
   // Get the CharCodeToUnicode object for <tag>.  Increments its
   // reference count; there will be one reference for the cache plus

@@ -1,0 +1,40 @@
+diff -aurp poppler-0.72.0-orig/poppler/PDFDoc.cc poppler-0.72.0/poppler/PDFDoc.cc
+--- poppler-0.72.0-orig/poppler/PDFDoc.cc	2018-12-06 16:22:06.000000000 +0000
++++ poppler-0.72.0/poppler/PDFDoc.cc	2018-12-10 16:27:39.234662100 +0000
+@@ -50,6 +50,7 @@
+ 
+ #include <config.h>
+ #include <poppler-config.h>
++#include "goo/glibc.h"
+ 
+ #include <ctype.h>
+ #include <locale.h>
+@@ -62,7 +63,7 @@
+ #include <time.h>
+ #include <regex>
+ #include <sys/stat.h>
+-#include "goo/glibc.h"
++
+ #include "goo/gstrtod.h"
+ #include "goo/GooString.h"
+ #include "goo/gfile.h"
+diff -aurp poppler-0.72.0-orig/utils/pdfinfo.cc poppler-0.72.0/utils/pdfinfo.cc
+--- poppler-0.72.0-orig/utils/pdfinfo.cc	2018-12-06 16:22:06.000000000 +0000
++++ poppler-0.72.0/utils/pdfinfo.cc	2018-12-10 16:27:37.674506100 +0000
+@@ -32,6 +32,7 @@
+ //========================================================================
+ 
+ #include "config.h"
++#include "goo/glibc.h"
+ #include <poppler-config.h>
+ #include <stdio.h>
+ #include <stdlib.h>
+@@ -44,7 +45,7 @@
+ #include "printencodings.h"
+ #include "goo/GooString.h"
+ #include "goo/gfile.h"
+-#include "goo/glibc.h"
++
+ #include "goo/gmem.h"
+ #include "GlobalParams.h"
+ #include "Object.h"

@@ -13,10 +13,11 @@
 //
 // Copyright (C) 2006 Takashi Iwai <tiwai@suse.de>
 // Copyright (C) 2009 Petr Gajdos <pgajdos@novell.com>
-// Copyright (C) 2009, 2011 Albert Astals Cid <aacid@kde.org>
+// Copyright (C) 2009, 2011, 2018 Albert Astals Cid <aacid@kde.org>
 // Copyright (C) 2011 Andreas Hartmetz <ahartmetz@gmail.com>
 // Copyright (C) 2013 Thomas Freitag <Thomas.Freitag@alfa.de>
 // Copyright (C) 2017 Adrian Johnson <ajohnson@redneon.com>
+// Copyright (C) 2018 Oliver Sander <oliver.sander@tu-dresden.de>
 //
 // To see a description of the changes please see the Changelog file that
 // came with your tarball or type make ChangeLog if you are building from git
@@ -26,9 +27,7 @@
 #ifndef SPLASHFONTENGINE_H
 #define SPLASHFONTENGINE_H
 
-#ifdef USE_GCC_PRAGMAS
-#pragma interface
-#endif
+#include <array>
 
 #include "goo/gtypes.h"
 #include "SplashTypes.h"
@@ -43,10 +42,6 @@ class SplashFont;
 class SplashFontSrc;
 
 //------------------------------------------------------------------------
-
-#define splashFontCacheSize 16
-
-//------------------------------------------------------------------------
 // SplashFontEngine
 //------------------------------------------------------------------------
 
@@ -55,12 +50,15 @@ public:
 
   // Create a font engine.
   SplashFontEngine(
-		   GBool enableFreeType,
-		   GBool enableFreeTypeHinting,
-		   GBool enableSlightHinting,
-		   GBool aa);
+		   bool enableFreeType,
+		   bool enableFreeTypeHinting,
+		   bool enableSlightHinting,
+		   bool aa);
 
   ~SplashFontEngine();
+
+  SplashFontEngine(const SplashFontEngine &) = delete;
+  SplashFontEngine& operator=(const SplashFontEngine &) = delete;
 
   // Get a font file from the cache.  Returns NULL if there is no
   // matching entry in the cache.
@@ -85,13 +83,13 @@ public:
   //    [x' y'] = [x y] * mat
   // Note that the Splash y axis points downward.
   SplashFont *getFont(SplashFontFile *fontFile,
-		      SplashCoord *textMat, SplashCoord *ctm);
-  GBool getAA();
-  void setAA(GBool aa);
+		      const SplashCoord *textMat, const SplashCoord *ctm);
+  bool getAA();
+  void setAA(bool aa);
 
 private:
 
-  SplashFont *fontCache[splashFontCacheSize];
+  std::array<SplashFont*,16> fontCache;
 
   SplashFTFontEngine *ftEngine;
 };

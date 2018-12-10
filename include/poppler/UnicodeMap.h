@@ -16,6 +16,8 @@
 // under GPL version 2 or later
 //
 // Copyright (C) 2017 Adrian Johnson <ajohnson@redneon.com>
+// Copyright (C) 2018 Albert Astals Cid <aacid@kde.org>
+// Copyright (C) 2018 Adam Reichold <adam.reichold@t-online.de>
 //
 // To see a description of the changes please see the Changelog file that
 // came with your tarball or type make ChangeLog if you are building from git
@@ -25,17 +27,10 @@
 #ifndef UNICODEMAP_H
 #define UNICODEMAP_H
 
-#ifdef USE_GCC_PRAGMAS
-#pragma interface
-#endif
-
 #include "poppler-config.h"
 #include "goo/gtypes.h"
 #include "CharTypes.h"
-
-#ifdef MULTITHREADED
-#include "goo/GooMutex.h"
-#endif
+#include <atomic>
 
 class GooString;
 
@@ -66,26 +61,34 @@ public:
   static UnicodeMap *parse(GooString *encodingNameA);
 
   // Create a resident UnicodeMap.
-  UnicodeMap(const char *encodingNameA, GBool unicodeOutA,
+  UnicodeMap(const char *encodingNameA, bool unicodeOutA,
 	     UnicodeMapRange *rangesA, int lenA);
 
   // Create a resident UnicodeMap that uses a function instead of a
   // list of ranges.
-  UnicodeMap(const char *encodingNameA, GBool unicodeOutA,
+  UnicodeMap(const char *encodingNameA, bool unicodeOutA,
 	     UnicodeMapFunc funcA);
 
+  UnicodeMap(UnicodeMap &&other) noexcept;
+  UnicodeMap& operator=(UnicodeMap &&other) noexcept;
+
+  void swap(UnicodeMap& other) noexcept;
+
   ~UnicodeMap();
+
+  UnicodeMap(const UnicodeMap &) = delete;
+  UnicodeMap& operator=(const UnicodeMap &) = delete;
 
   void incRefCnt();
   void decRefCnt();
 
-  GooString *getEncodingName() { return encodingName; }
+  const GooString *getEncodingName() const { return encodingName; }
 
-  GBool isUnicode() { return unicodeOut; }
+  bool isUnicode() const { return unicodeOut; }
 
   // Return true if this UnicodeMap matches the specified
   // <encodingNameA>.
-  GBool match(GooString *encodingNameA);
+  bool match(const GooString *encodingNameA) const;
 
   // Map Unicode to the target encoding.  Fills in <buf> with the
   // output and returns the number of bytes used.  Output will be
@@ -99,7 +102,7 @@ private:
 
   GooString *encodingName;
   UnicodeMapKind kind;
-  GBool unicodeOut;
+  bool unicodeOut;
   union {
     UnicodeMapRange *ranges;	// (user, resident)
     UnicodeMapFunc func;	// (func)
@@ -107,10 +110,7 @@ private:
   int len;			// (user, resident)
   UnicodeMapExt *eMaps;		// (user)
   int eMapsLen;			// (user)
-  int refCnt;
-#ifdef MULTITHREADED
-  GooMutex mutex;
-#endif
+  std::atomic_int refCnt;
 };
 
 //------------------------------------------------------------------------
@@ -122,6 +122,9 @@ public:
 
   UnicodeMapCache();
   ~UnicodeMapCache();
+
+  UnicodeMapCache(const UnicodeMapCache &) = delete;
+  UnicodeMapCache& operator=(const UnicodeMapCache &) = delete;
 
   // Get the UnicodeMap for <encodingName>.  Increments its reference
   // count; there will be one reference for the cache plus one for the

@@ -3,7 +3,7 @@
 // FontInfo.h
 //
 // Copyright (C) 2005 Kristian Høgsberg <krh@redhat.com>
-// Copyright (C) 2005-2008, 2010, 2011 Albert Astals Cid <aacid@kde.org>
+// Copyright (C) 2005-2008, 2010, 2011, 2018 Albert Astals Cid <aacid@kde.org>
 // Copyright (C) 2005 Brad Hards <bradh@frogmouth.net>
 // Copyright (C) 2009 Pino Toscano <pino@kde.org>
 // Copyright (C) 2012 Adrian Johnson <ajohnson@redneon.com>
@@ -56,14 +56,16 @@ public:
   // Destructor.
   ~FontInfo();
 
+  FontInfo& operator=(const FontInfo &) = delete;
+
   GooString *getName()      { return name; };
   GooString *getSubstituteName() { return substituteName; };
   GooString *getFile()      { return file; };
   GooString *getEncoding()      { return encoding; };
   Type       getType()      { return type; };
-  GBool      getEmbedded()  { return emb; };
-  GBool      getSubset()    { return subset; };
-  GBool      getToUnicode() { return hasToUnicode; };
+  bool      getEmbedded()  { return emb; };
+  bool      getSubset()    { return subset; };
+  bool      getToUnicode() { return hasToUnicode; };
   Ref        getRef()       { return fontRef; };
   Ref        getEmbRef()    { return embRef; };
 
@@ -73,9 +75,9 @@ private:
   GooString *file;
   GooString *encoding;
   Type type;
-  GBool emb;
-  GBool subset;
-  GBool hasToUnicode;
+  bool emb;
+  bool subset;
+  bool hasToUnicode;
   Ref fontRef;
   Ref embRef;
 };

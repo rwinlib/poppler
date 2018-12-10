@@ -8,12 +8,22 @@
 //
 //========================================================================
 
+//========================================================================
+//
+// Modified under the Poppler project - http://poppler.freedesktop.org
+//
+// All changes made under the Poppler project to this file are licensed
+// under GPL version 2 or later
+//
+// Copyright (C) 2018 Albert Astals Cid <aacid@kde.org>
+//
+// To see a description of the changes please see the Changelog file that
+// came with your tarball or type make ChangeLog if you are building from git
+//
+//========================================================================
+
 #ifndef JARITHMETICDECODER_H
 #define JARITHMETICDECODER_H
-
-#ifdef USE_GCC_PRAGMAS
-#pragma interface
-#endif
 
 #include "goo/gtypes.h"
 
@@ -28,6 +38,8 @@ public:
 
   JArithmeticDecoderStats(int contextSizeA);
   ~JArithmeticDecoderStats();
+  JArithmeticDecoderStats(const JArithmeticDecoderStats &) = delete;
+  JArithmeticDecoderStats& operator=(const JArithmeticDecoderStats &) = delete;
   JArithmeticDecoderStats *copy();
   void reset();
   int getContextSize() { return contextSize; }
@@ -51,11 +63,13 @@ public:
 
   JArithmeticDecoder();
   ~JArithmeticDecoder();
+  JArithmeticDecoder(const JArithmeticDecoder &) = delete;
+  JArithmeticDecoder& operator=(const JArithmeticDecoder &) = delete;
 
   void setStream(Stream *strA)
-    { str = strA; dataLen = 0; limitStream = gFalse; }
+    { str = strA; dataLen = 0; limitStream = false; }
   void setStream(Stream *strA, int dataLenA)
-    { str = strA; dataLen = dataLenA; limitStream = gTrue; }
+    { str = strA; dataLen = dataLenA; limitStream = true; }
 
   // Start decoding on a new stream.  This fills the byte buffers and
   // runs INITDEC.
@@ -77,7 +91,7 @@ public:
   int decodeByte(Guint context, JArithmeticDecoderStats *stats);
 
   // Returns false for OOB, otherwise sets *<x> and returns true.
-  GBool decodeInt(int *x, JArithmeticDecoderStats *stats);
+  bool decodeInt(int *x, JArithmeticDecoderStats *stats);
 
   Guint decodeIAID(Guint codeLen,
 		   JArithmeticDecoderStats *stats);
@@ -105,7 +119,7 @@ private:
   Stream *str;
   Guint nBytesRead;
   int dataLen;
-  GBool limitStream;
+  bool limitStream;
 };
 
 #endif

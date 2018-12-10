@@ -13,7 +13,7 @@
 //
 // Copyright (C) 2006 Takashi Iwai <tiwai@suse.de>
 // Copyright (C) 2009 Petr Gajdos <pgajdos@novell.com>
-// Copyright (C) 2009 Albert Astals Cid <aacid@kde.org>
+// Copyright (C) 2009, 2018 Albert Astals Cid <aacid@kde.org>
 // Copyright (C) 2011 Andreas Hartmetz <ahartmetz@gmail.com>
 // Copyright (C) 2013 Thomas Freitag <Thomas.Freitag@alfa.de>
 // Copyright (C) 2017 Adrian Johnson <ajohnson@redneon.com>
@@ -25,10 +25,6 @@
 
 #ifndef SPLASHFTFONTENGINE_H
 #define SPLASHFTFONTENGINE_H
-
-#ifdef USE_GCC_PRAGMAS
-#pragma interface
-#endif
 
 #include <ft2build.h>
 #include FT_FREETYPE_H
@@ -45,9 +41,12 @@ class SplashFontSrc;
 class SplashFTFontEngine {
 public:
 
-  static SplashFTFontEngine *init(GBool aaA, GBool enableFreeTypeHintingA, GBool enableSlightHinting);
+  static SplashFTFontEngine *init(bool aaA, bool enableFreeTypeHintingA, bool enableSlightHinting);
 
   ~SplashFTFontEngine();
+
+  SplashFTFontEngine(const SplashFTFontEngine&) = delete;
+  SplashFTFontEngine& operator=(const SplashFTFontEngine&) = delete;
 
   // Load fonts.
   SplashFontFile *loadType1Font(SplashFontFileID *idA, SplashFontSrc *src,  const char **enc);
@@ -58,18 +57,18 @@ public:
                                       int *codeToGID, int codeToGIDLen);
   SplashFontFile *loadTrueTypeFont(SplashFontFileID *idA, SplashFontSrc *src,
 				   int *codeToGID, int codeToGIDLen, int faceIndex = 0);
-  GBool getAA() { return aa; }
-  void setAA(GBool aaA) { aa = aaA; }
+  bool getAA() { return aa; }
+  void setAA(bool aaA) { aa = aaA; }
 
 private:
 
-  SplashFTFontEngine(GBool aaA, GBool enableFreeTypeHintingA, GBool enableSlightHintingA, FT_Library libA);
+  SplashFTFontEngine(bool aaA, bool enableFreeTypeHintingA, bool enableSlightHintingA, FT_Library libA);
 
-  GBool aa;
-  GBool enableFreeTypeHinting;
-  GBool enableSlightHinting;
+  bool aa;
+  bool enableFreeTypeHinting;
+  bool enableSlightHinting;
   FT_Library lib;
-  GBool useCIDs;
+  bool useCIDs;
 
   friend class SplashFTFontFile;
   friend class SplashFTFont;

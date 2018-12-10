@@ -15,7 +15,7 @@
 //
 // Copyright (C) 2005 Jeff Muizelaar <jeff@infidigm.net>
 // Copyright (C) 2008 Julien Rebetez <julien@fhtagn.net>
-// Copyright (C) 2008, 2010, 2011, 2016, 2017 Albert Astals Cid <aacid@kde.org>
+// Copyright (C) 2008, 2010, 2011, 2016-2018 Albert Astals Cid <aacid@kde.org>
 // Copyright (C) 2009 Carlos Garcia Campos <carlosgc@gnome.org>
 // Copyright (C) 2009 Stefan Thomas <thomas@eload24.com>
 // Copyright (C) 2010 Hib Eris <hib@hiberis.nl>
@@ -24,7 +24,7 @@
 // Copyright (C) 2012, 2013 Fabio D'Urso <fabiodurso@hotmail.it>
 // Copyright (C) 2013, 2017 Adrian Johnson <ajohnson@redneon.com>
 // Copyright (C) 2013 Peter Breitenlohner <peb@mppmu.mpg.de>
-// Copyright (C) 2013 Adam Reichold <adamreichold@myopera.com>
+// Copyright (C) 2013, 2018 Adam Reichold <adamreichold@myopera.com>
 // Copyright (C) 2013 Pino Toscano <pino@kde.org>
 //
 // To see a description of the changes please see the Changelog file that
@@ -35,15 +35,12 @@
 #ifndef STREAM_H
 #define STREAM_H
 
-#ifdef USE_GCC_PRAGMAS
-#pragma interface
-#endif
+#include <atomic>
+#include <cstdio>
 
 #include "poppler-config.h"
-#include <stdio.h>
 #include "goo/gtypes.h"
 #include "Object.h"
-#include "goo/GooMutex.h"
 
 class GooFile;
 class BaseStream;
@@ -104,6 +101,9 @@ public:
 
   // Destructor.
   virtual ~Stream();
+
+  Stream(const Stream &) = delete;
+  Stream& operator=(const Stream &other) = delete;
 
   // Get kind of stream.
   virtual StreamKind getKind() = 0;
@@ -198,7 +198,7 @@ public:
   virtual GooString *getPSFilter(int psLevel, const char *indent);
 
   // Does this stream type potentially contain non-printable chars?
-  virtual GBool isBinary(GBool last = gTrue) = 0;
+  virtual bool isBinary(bool last = true) = 0;
 
   // Get the BaseStream of this stream.
   virtual BaseStream *getBaseStream() = 0;
@@ -212,14 +212,14 @@ public:
   virtual Object *getDictObject() = 0;
 
   // Is this an encoding filter?
-  virtual GBool isEncoder() { return gFalse; }
+  virtual bool isEncoder() { return false; }
 
   // Get image parameters which are defined by the stream contents.
   virtual void getImageParams(int * /*bitsPerComponent*/,
 			      StreamColorSpaceMode * /*csMode*/) {}
 
   // Return the next stream in the "stack".
-  virtual Stream *getNextStream() { return NULL; }
+  virtual Stream *getNextStream() { return nullptr; }
 
   // Add filters to this stream according to the parameters in <dict>.
   // Returns the new stream.
@@ -229,18 +229,15 @@ private:
   friend class Object; // for incRef/decRef
 
   // Reference counting.
-  int incRef();
-  int decRef();
+  int incRef() { return ++ref; }
+  int decRef() { return --ref; }
 
-  virtual GBool hasGetChars() { return false; }
+  virtual bool hasGetChars() { return false; }
   virtual int getChars(int nChars, Guchar *buffer);
 
-  Stream *makeFilter(char *name, Stream *str, Object *params, int recursion = 0, Dict *dict = nullptr);
+  Stream *makeFilter(const char *name, Stream *str, Object *params, int recursion = 0, Dict *dict = nullptr);
 
-  int ref;			// reference count
-#ifdef MULTITHREADED
-  GooMutex mutex;
-#endif
+  std::atomic_int ref;			// reference count
 };
 
 
@@ -256,6 +253,9 @@ public:
 
   // Desctructor.
   virtual ~OutStream ();
+
+  OutStream(const OutStream &) = delete;
+  OutStream& operator=(const OutStream &other) = delete;
 
   // Close the stream
   virtual void close() = 0;
@@ -305,15 +305,15 @@ public:
   BaseStream(Object &&dictA, Goffset lengthA);
   ~BaseStream();
   virtual BaseStream *copy() = 0;
-  virtual Stream *makeSubStream(Goffset start, GBool limited,
+  virtual Stream *makeSubStream(Goffset start, bool limited,
 				Goffset length, Object &&dict) = 0;
   void setPos(Goffset pos, int dir = 0) override = 0;
-  GBool isBinary(GBool last = gTrue) override { return last; }
+  bool isBinary(bool last = true) override { return last; }
   BaseStream *getBaseStream() override { return this; }
   Stream *getUndecodedStream() override { return this; }
   Dict *getDict() override { return dict.getDict(); }
   Object *getDictObject() override { return &dict; }
-  virtual GooString *getFileName() { return NULL; }
+  virtual GooString *getFileName() { return nullptr; }
   virtual Goffset getLength() { return length; }
 
   // Get/set position of first byte of stream within the file.
@@ -368,6 +368,9 @@ public:
 
   ~ImageStream();
 
+  ImageStream(const ImageStream &) = delete;
+  ImageStream& operator=(const ImageStream &other) = delete;
+
   // Reset the stream.
   void reset();
 
@@ -376,7 +379,7 @@ public:
 
   // Gets the next pixel from the stream.  <pix> should be able to hold
   // at least nComps elements.  Returns false at end of file.
-  GBool getPixel(Guchar *pix);
+  bool getPixel(Guchar *pix);
 
   // Returns a pointer to the next line of pixels.  Returns NULL at
   // end of file.
@@ -412,7 +415,10 @@ public:
 
   ~StreamPredictor();
 
-  GBool isOk() { return ok; }
+  StreamPredictor(const StreamPredictor &) = delete;
+  StreamPredictor& operator=(const StreamPredictor &) = delete;
+
+  bool isOk() { return ok; }
 
   int lookChar();
   int getChar();
@@ -420,7 +426,7 @@ public:
 
 private:
 
-  GBool getNextLine();
+  bool getNextLine();
 
   Stream *str;			// base stream
   int predictor;		// predictor
@@ -432,7 +438,7 @@ private:
   int rowBytes;			// bytes per line
   Guchar *predLine;		// line buffer
   int predIdx;			// current index in predLine
-  GBool ok;
+  bool ok;
 };
 
 //------------------------------------------------------------------------
@@ -444,11 +450,11 @@ private:
 class FileStream: public BaseStream {
 public:
 
-  FileStream(GooFile* fileA, Goffset startA, GBool limitedA,
+  FileStream(GooFile* fileA, Goffset startA, bool limitedA,
 	     Goffset lengthA, Object &&dictA);
   ~FileStream();
   BaseStream *copy() override;
-  Stream *makeSubStream(Goffset startA, GBool limitedA,
+  Stream *makeSubStream(Goffset startA, bool limitedA,
 				Goffset lengthA, Object &&dictA) override;
   StreamKind getKind() override { return strFile; }
   void reset() override;
@@ -467,9 +473,9 @@ public:
 
 private:
 
-  GBool fillBuf();
+  bool fillBuf();
   
-  GBool hasGetChars() override { return true; }
+  bool hasGetChars() override { return true; }
   int getChars(int nChars, Guchar *buffer) override
     {
       int n, m;
@@ -496,13 +502,13 @@ private:
   GooFile* file;
   Goffset offset;
   Goffset start;
-  GBool limited;
+  bool limited;
   char buf[fileStreamBufSize];
   char *bufPtr;
   char *bufEnd;
   Goffset bufPos;
   Goffset savePos;
-  GBool saved;
+  bool saved;
 };
 
 //------------------------------------------------------------------------
@@ -514,11 +520,11 @@ private:
 class CachedFileStream: public BaseStream {
 public:
 
-  CachedFileStream(CachedFile *ccA, Goffset startA, GBool limitedA,
+  CachedFileStream(CachedFile *ccA, Goffset startA, bool limitedA,
 	     Goffset lengthA, Object &&dictA);
   ~CachedFileStream();
   BaseStream *copy() override;
-  Stream *makeSubStream(Goffset startA, GBool limitedA,
+  Stream *makeSubStream(Goffset startA, bool limitedA,
 				Goffset lengthA, Object &&dictA) override;
   StreamKind getKind() override { return strCachedFile; }
   void reset() override;
@@ -537,17 +543,17 @@ public:
 
 private:
 
-  GBool fillBuf();
+  bool fillBuf();
 
   CachedFile *cc;
   Goffset start;
-  GBool limited;
+  bool limited;
   char buf[cachedStreamBufSize];
   char *bufPtr;
   char *bufEnd;
   Guint bufPos;
   int savePos;
-  GBool saved;
+  bool saved;
 };
 
 
@@ -555,44 +561,124 @@ private:
 // MemStream
 //------------------------------------------------------------------------
 
-class MemStream: public BaseStream {
+template<typename T>
+class BaseMemStream: public BaseStream {
 public:
 
-  MemStream(char *bufA, Goffset startA, Goffset lengthA, Object &&dictA);
-  ~MemStream();
-  BaseStream *copy() override;
-  Stream *makeSubStream(Goffset start, GBool limited,
-				Goffset lengthA, Object &&dictA) override;
+  BaseMemStream(T *bufA, Goffset startA, Goffset lengthA, Object &&dictA) : BaseStream(std::move(dictA), lengthA) {
+    buf = bufA;
+    start = startA;
+    length = lengthA;
+    bufEnd = buf + start + length;
+    bufPtr = buf + start;
+  }
+
+  BaseStream *copy() override {
+    return new BaseMemStream(buf, start, length, dict.copy());
+  }
+
+  Stream *makeSubStream(Goffset startA, bool limited, Goffset lengthA, Object &&dictA) override {
+    Goffset newLength;
+
+    if (!limited || startA + lengthA > start + length) {
+      newLength = start + length - startA;
+    } else {
+      newLength = lengthA;
+    }
+    return new BaseMemStream(buf, startA, newLength, std::move(dictA));
+  }
+
   StreamKind getKind() override { return strWeird; }
-  void reset() override;
-  void close() override;
+
+  void reset() override {
+    bufPtr = buf + start;
+  }
+
+  void close() override { }
+
   int getChar() override
     { return (bufPtr < bufEnd) ? (*bufPtr++ & 0xff) : EOF; }
+
   int lookChar() override
     { return (bufPtr < bufEnd) ? (*bufPtr & 0xff) : EOF; }
-  Goffset getPos() override { return (int)(bufPtr - buf); }
-  void setPos(Goffset pos, int dir = 0) override;
-  Goffset getStart() override { return start; }
-  void moveStart(Goffset delta) override;
 
-  //if needFree = true, the stream will delete buf when it is destroyed
-  //otherwise it will not touch it. Default value is false
-  virtual void setNeedFree (GBool val) { needFree = val; }
+  Goffset getPos() override { return (int)(bufPtr - buf); }
+
+  void setPos(Goffset pos, int dir = 0) override {
+    Guint i;
+
+    if (dir >= 0) {
+      i = pos;
+    } else {
+      i = start + length - pos;
+    }
+    if (i < start) {
+      i = start;
+    } else if (i > start + length) {
+      i = start + length;
+    }
+    bufPtr = buf + i;
+  }
+
+  Goffset getStart() override { return start; }
+
+  void moveStart(Goffset delta) override {
+    start += delta;
+    length -= delta;
+    bufPtr = buf + start;
+  }
 
   int getUnfilteredChar () override { return getChar(); }
+
   void unfilteredReset () override { reset (); } 
+
+protected:
+  T *buf;
 
 private:
 
-  GBool hasGetChars() override { return true; }
-  int getChars(int nChars, Guchar *buffer) override;
+  bool hasGetChars() override { return true; }
 
-  char *buf;
+  int getChars(int nChars, Guchar *buffer) override {
+    int n;
+
+    if (nChars <= 0) {
+      return 0;
+    }
+    if (bufEnd - bufPtr < nChars) {
+      n = (int)(bufEnd - bufPtr);
+    } else {
+      n = nChars;
+    }
+    memcpy(buffer, bufPtr, n);
+    bufPtr += n;
+    return n;
+  }
+
   Goffset start;
-  char *bufEnd;
-  char *bufPtr;
-  GBool needFree;
+  T *bufEnd;
+  T *bufPtr;
 };
+
+class MemStream : public BaseMemStream<const char>
+{
+public:
+  MemStream(const char *bufA, Goffset startA, Goffset lengthA, Object &&dictA)
+   : BaseMemStream(bufA, startA, lengthA, std::move(dictA))
+   { }
+};
+
+class AutoFreeMemStream : public BaseMemStream<char>
+{
+public:
+  AutoFreeMemStream(char *bufA, Goffset startA, Goffset lengthA, Object &&dictA)
+   : BaseMemStream(bufA, startA, lengthA, std::move(dictA))
+   { }
+
+  ~AutoFreeMemStream()
+    { gfree(buf); }
+};
+
 
 //------------------------------------------------------------------------
 // EmbedStream
@@ -607,10 +693,10 @@ private:
 class EmbedStream: public BaseStream {
 public:
 
-  EmbedStream(Stream *strA, Object &&dictA, GBool limitedA, Goffset lengthA, GBool reusableA = gFalse);
+  EmbedStream(Stream *strA, Object &&dictA, bool limitedA, Goffset lengthA, bool reusableA = false);
   ~EmbedStream();
   BaseStream *copy() override;
-  Stream *makeSubStream(Goffset start, GBool limitedA,
+  Stream *makeSubStream(Goffset start, bool limitedA,
 				Goffset lengthA, Object &&dictA) override;
   StreamKind getKind() override { return str->getKind(); }
   void reset() override {}
@@ -629,14 +715,14 @@ public:
 
 private:
 
-  GBool hasGetChars() override { return true; }
+  bool hasGetChars() override { return true; }
   int getChars(int nChars, Guchar *buffer) override;
 
   Stream *str;
-  GBool limited;
-  GBool reusable;
-  GBool record;
-  GBool replay;
+  bool limited;
+  bool reusable;
+  bool record;
+  bool replay;
   unsigned char *bufData;
   long bufMax;
   long bufLen;
@@ -659,12 +745,12 @@ public:
     { int c = lookChar(); buf = EOF; return c; }
   int lookChar() override;
   GooString *getPSFilter(int psLevel, const char *indent) override;
-  GBool isBinary(GBool last = gTrue) override;
+  bool isBinary(bool last = true) override;
 
 private:
 
   int buf;
-  GBool eof;
+  bool eof;
 };
 
 //------------------------------------------------------------------------
@@ -682,14 +768,14 @@ public:
     { int ch = lookChar(); ++index; return ch; }
   int lookChar() override;
   GooString *getPSFilter(int psLevel, const char *indent) override;
-  GBool isBinary(GBool last = gTrue) override;
+  bool isBinary(bool last = true) override;
 
 private:
 
   int c[5];
   int b[4];
   int index, n;
-  GBool eof;
+  bool eof;
 };
 
 //------------------------------------------------------------------------
@@ -709,11 +795,11 @@ public:
   int getRawChar() override;
   void getRawChars(int nChars, int *buffer) override;
   GooString *getPSFilter(int psLevel, const char *indent) override;
-  GBool isBinary(GBool last = gTrue) override;
+  bool isBinary(bool last = true) override;
 
 private:
 
-  GBool hasGetChars() override { return true; }
+  bool hasGetChars() override { return true; }
   int getChars(int nChars, Guchar *buffer) override;
 
   inline int doGetRawChar() {
@@ -730,8 +816,8 @@ private:
 
   StreamPredictor *pred;	// predictor
   int early;			// early parameter
-  GBool eof;			// true if at eof
-  int inputBuf;			// input buffer
+  bool eof;			// true if at eof
+  unsigned int inputBuf;	// input buffer
   int inputBits;		// number of bits in input buffer
   struct {			// decoding table
     int length;
@@ -745,9 +831,9 @@ private:
   Guchar seqBuf[4097];		// buffer for current sequence
   int seqLength;		// length of current sequence
   int seqIndex;			// index into current sequence
-  GBool first;			// first code after a table clear
+  bool first;			// first code after a table clear
 
-  GBool processNextCode();
+  bool processNextCode();
   void clearTable();
   int getCode();
 };
@@ -768,19 +854,19 @@ public:
   int lookChar() override
     { return (bufPtr >= bufEnd && !fillBuf()) ? EOF : (*bufPtr & 0xff); }
   GooString *getPSFilter(int psLevel, const char *indent) override;
-  GBool isBinary(GBool last = gTrue) override;
+  bool isBinary(bool last = true) override;
 
 private:
 
-  GBool hasGetChars() override { return true; }
+  bool hasGetChars() override { return true; }
   int getChars(int nChars, Guchar *buffer) override;
 
   char buf[128];		// buffer
   char *bufPtr;			// next char to read
   char *bufEnd;			// end of buffer
-  GBool eof;
+  bool eof;
 
-  GBool fillBuf();
+  bool fillBuf();
 };
 
 //------------------------------------------------------------------------
@@ -792,9 +878,9 @@ struct CCITTCodeTable;
 class CCITTFaxStream: public FilterStream {
 public:
 
-  CCITTFaxStream(Stream *strA, int encodingA, GBool endOfLineA,
-		 GBool byteAlignA, int columnsA, int rowsA,
-		 GBool endOfBlockA, GBool blackA);
+  CCITTFaxStream(Stream *strA, int encodingA, bool endOfLineA,
+		 bool byteAlignA, int columnsA, int rowsA,
+		 bool endOfBlockA, bool blackA, int damagedRowsBeforeErrorA);
   ~CCITTFaxStream();
   StreamKind getKind() override { return strCCITTFax; }
   void reset() override;
@@ -802,34 +888,38 @@ public:
     { int c = lookChar(); buf = EOF; return c; }
   int lookChar() override;
   GooString *getPSFilter(int psLevel, const char *indent) override;
-  GBool isBinary(GBool last = gTrue) override;
+  bool isBinary(bool last = true) override;
 
   void unfilteredReset () override;
 
   int getEncoding() { return encoding; }
-  GBool getEndOfLine() { return endOfLine; }
+  bool getEndOfLine() { return endOfLine; }
+  bool getEncodedByteAlign() { return byteAlign; }
+  bool getEndOfBlock() { return endOfBlock; }
   int getColumns() { return columns; }
-  GBool getBlackIs1() { return black; }
+  bool getBlackIs1() { return black; }
+  int getDamagedRowsBeforeError() { return damagedRowsBeforeError; }
 
 private:
 
-  void ccittReset(GBool unfiltered);
+  void ccittReset(bool unfiltered);
   int encoding;			// 'K' parameter
-  GBool endOfLine;		// 'EndOfLine' parameter
-  GBool byteAlign;		// 'EncodedByteAlign' parameter
+  bool endOfLine;		// 'EndOfLine' parameter
+  bool byteAlign;		// 'EncodedByteAlign' parameter
   int columns;			// 'Columns' parameter
   int rows;			// 'Rows' parameter
-  GBool endOfBlock;		// 'EndOfBlock' parameter
-  GBool black;			// 'BlackIs1' parameter
-  GBool eof;			// true if at eof
-  GBool nextLine2D;		// true if next line uses 2D encoding
+  bool endOfBlock;		// 'EndOfBlock' parameter
+  bool black;			// 'BlackIs1' parameter
+  int damagedRowsBeforeError;   // 'DamagedRowsBeforeError' parameter
+  bool eof;			// true if at eof
+  bool nextLine2D;		// true if next line uses 2D encoding
   int row;			// current row
   Guint inputBuf;		// input buffer
   int inputBits;		// number of bits in input buffer
   int *codingLine;		// coding line changing elements
   int *refLine;			// reference line changing elements
   int a0i;			// index into codingLine
-  GBool err;			// error on current line
+  bool err;			// error on current line
   int outputBits;		// remaining ouput bits
   int buf;			// character buffer
 
@@ -856,7 +946,7 @@ struct DCTCompInfo {
 };
 
 struct DCTScanInfo {
-  GBool comp[4];		// comp[i] is set if component i is
+  bool comp[4];		// comp[i] is set if component i is
 				//   included in this scan
   int numComps;			// number of components in the scan
   int dcHuffTable[4];		// DC Huffman table numbers
@@ -884,15 +974,15 @@ public:
   int getChar() override;
   int lookChar() override;
   GooString *getPSFilter(int psLevel, const char *indent) override;
-  GBool isBinary(GBool last = gTrue) override;
+  bool isBinary(bool last = true) override;
 
   void unfilteredReset() override;
 
 private:
 
-  void dctReset(GBool unfiltered);  
-  GBool progressive;		// set if in progressive mode
-  GBool interleaved;		// set if in interleaved mode
+  void dctReset(bool unfiltered);  
+  bool progressive;		// set if in progressive mode
+  bool interleaved;		// set if in interleaved mode
   int width, height;		// image size
   int mcuWidth, mcuHeight;	// size of min coding unit, in data units
   int bufWidth, bufHeight;	// frameBuf size
@@ -902,8 +992,8 @@ private:
   int colorXform;		// color transform: -1 = unspecified
 				//                   0 = none
 				//                   1 = YUV/YUVK -> RGB/CMYK
-  GBool gotJFIFMarker;		// set if APP0 JFIF marker was present
-  GBool gotAdobeMarker;		// set if APP14 Adobe marker was present
+  bool gotJFIFMarker;		// set if APP0 JFIF marker was present
+  bool gotAdobeMarker;		// set if APP14 Adobe marker was present
   int restartInterval;		// restart interval, in MCUs
   Gushort quantTables[4][64];	// quantization tables
   int numQuantTables;		// number of quantization tables
@@ -921,12 +1011,12 @@ private:
   int inputBits;		// number of valid bits in input buffer
 
   void restart();
-  GBool readMCURow();
+  bool readMCURow();
   void readScan();
-  GBool readDataUnit(DCTHuffTable *dcHuffTable,
+  bool readDataUnit(DCTHuffTable *dcHuffTable,
 		     DCTHuffTable *acHuffTable,
 		     int *prevDC, int data[64]);
-  GBool readProgressiveDataUnit(DCTHuffTable *dcHuffTable,
+  bool readProgressiveDataUnit(DCTHuffTable *dcHuffTable,
 				DCTHuffTable *acHuffTable,
 				int *prevDC, int data[64]);
   void decodeImage();
@@ -935,16 +1025,16 @@ private:
   int readHuffSym(DCTHuffTable *table);
   int readAmp(int size);
   int readBit();
-  GBool readHeader();
-  GBool readBaselineSOF();
-  GBool readProgressiveSOF();
-  GBool readScanInfo();
-  GBool readQuantTables();
-  GBool readHuffmanTables();
-  GBool readRestartInterval();
-  GBool readJFIFMarker();
-  GBool readAdobeMarker();
-  GBool readTrailer();
+  bool readHeader();
+  bool readBaselineSOF();
+  bool readProgressiveSOF();
+  bool readScanInfo();
+  bool readQuantTables();
+  bool readHuffmanTables();
+  bool readRestartInterval();
+  bool readJFIFMarker();
+  bool readAdobeMarker();
+  bool readTrailer();
   int readMarker();
   int read16();
 };
@@ -993,11 +1083,11 @@ public:
   int getRawChar() override;
   void getRawChars(int nChars, int *buffer) override;
   GooString *getPSFilter(int psLevel, const char *indent) override;
-  GBool isBinary(GBool last = gTrue) override;
+  bool isBinary(bool last = true) override;
   void unfilteredReset () override;
 
 private:
-  void flateReset(GBool unfiltered);
+  void flateReset(bool unfiltered);
   inline int doGetRawChar() {
     int c;
 
@@ -1012,7 +1102,7 @@ private:
     return c;
   }
 
-  GBool hasGetChars() override { return true; }
+  bool hasGetChars() override { return true; }
   int getChars(int nChars, Guchar *buffer) override;
 
   StreamPredictor *pred;	// predictor
@@ -1025,10 +1115,10 @@ private:
     codeLengths[flateMaxLitCodes + flateMaxDistCodes];
   FlateHuffmanTab litCodeTab;	// literal code table
   FlateHuffmanTab distCodeTab;	// distance code table
-  GBool compressedBlock;	// set if reading a compressed block
+  bool compressedBlock;	// set if reading a compressed block
   int blockLen;			// remaining length of uncompressed block
-  GBool endOfBlock;		// set when end of block is reached
-  GBool eof;			// set when end of stream is reached
+  bool endOfBlock;		// set when end of block is reached
+  bool eof;			// set when end of stream is reached
 
   static int			// code length code reordering
     codeLenCodeMap[flateMaxCodeLenCodes];
@@ -1042,9 +1132,9 @@ private:
     fixedDistCodeTab;
 
   void readSome();
-  GBool startBlock();
+  bool startBlock();
   void loadFixedCodes();
-  GBool readDynamicCodes();
+  bool readDynamicCodes();
   void compHuffmanCodes(int *lengths, int n, FlateHuffmanTab *tab);
   int getHuffmanCodeWord(FlateHuffmanTab *tab);
   int getCodeWord(int bits);
@@ -1064,8 +1154,8 @@ public:
   void reset() override {}
   int getChar() override { return EOF; }
   int lookChar() override { return EOF; }
-  GooString *getPSFilter(int /*psLevel*/, const char * /*indent*/) override  { return NULL; }
-  GBool isBinary(GBool /*last = gTrue*/) override { return gFalse; }
+  GooString *getPSFilter(int /*psLevel*/, const char * /*indent*/) override  { return nullptr; }
+  bool isBinary(bool /*last = true*/) override { return false; }
 };
 
 //------------------------------------------------------------------------
@@ -1082,8 +1172,8 @@ public:
   int getChar() override;
   int lookChar() override;
   GooString *getPSFilter(int psLevel, const char *indent) override
-    { return NULL; }
-  GBool isBinary(GBool last = gTrue) override;
+    { return nullptr; }
+  bool isBinary(bool last = true) override;
 
   int lookChar(int idx);
 
@@ -1106,9 +1196,9 @@ public:
   void reset() override;
   int getChar() override;
   int lookChar() override;
-  GooString *getPSFilter(int /*psLevel*/, const char * /*indent*/) override { return NULL; }
-  GBool isBinary(GBool /*last = gTrue*/) override;
-  GBool isEncoder() override { return gTrue; }
+  GooString *getPSFilter(int /*psLevel*/, const char * /*indent*/) override { return nullptr; }
+  bool isBinary(bool /*last = true*/) override;
+  bool isEncoder() override { return true; }
 
 private:
 
@@ -1131,9 +1221,9 @@ public:
     { return (bufPtr >= bufEnd && !fillBuf()) ? EOF : (*bufPtr++ & 0xff); }
   int lookChar() override
     { return (bufPtr >= bufEnd && !fillBuf()) ? EOF : (*bufPtr & 0xff); }
-  GooString *getPSFilter(int /*psLevel*/, const char * /*indent*/) override { return NULL; }
-  GBool isBinary(GBool /*last = gTrue*/) override { return gFalse; }
-  GBool isEncoder() override { return gTrue; }
+  GooString *getPSFilter(int /*psLevel*/, const char * /*indent*/) override { return nullptr; }
+  bool isBinary(bool /*last = true*/) override { return false; }
+  bool isEncoder() override { return true; }
 
 private:
 
@@ -1141,9 +1231,9 @@ private:
   char *bufPtr;
   char *bufEnd;
   int lineLen;
-  GBool eof;
+  bool eof;
 
-  GBool fillBuf();
+  bool fillBuf();
 };
 
 //------------------------------------------------------------------------
@@ -1161,9 +1251,9 @@ public:
     { return (bufPtr >= bufEnd && !fillBuf()) ? EOF : (*bufPtr++ & 0xff); }
   int lookChar() override
     { return (bufPtr >= bufEnd && !fillBuf()) ? EOF : (*bufPtr & 0xff); }
-  GooString *getPSFilter(int /*psLevel*/, const char * /*indent*/) override { return NULL; }
-  GBool isBinary(GBool /*last = gTrue*/) override { return gFalse; }
-  GBool isEncoder() override { return gTrue; }
+  GooString *getPSFilter(int /*psLevel*/, const char * /*indent*/) override { return nullptr; }
+  bool isBinary(bool /*last = true*/) override { return false; }
+  bool isEncoder() override { return true; }
 
 private:
 
@@ -1171,9 +1261,9 @@ private:
   char *bufPtr;
   char *bufEnd;
   int lineLen;
-  GBool eof;
+  bool eof;
 
-  GBool fillBuf();
+  bool fillBuf();
 };
 
 //------------------------------------------------------------------------
@@ -1191,9 +1281,9 @@ public:
     { return (bufPtr >= bufEnd && !fillBuf()) ? EOF : (*bufPtr++ & 0xff); }
   int lookChar() override
     { return (bufPtr >= bufEnd && !fillBuf()) ? EOF : (*bufPtr & 0xff); }
-  GooString *getPSFilter(int /*psLevel*/, const char * /*indent*/) override { return NULL; }
-  GBool isBinary(GBool /*last = gTrue*/) override { return gTrue; }
-  GBool isEncoder() override { return gTrue; }
+  GooString *getPSFilter(int /*psLevel*/, const char * /*indent*/) override { return nullptr; }
+  bool isBinary(bool /*last = true*/) override { return true; }
+  bool isEncoder() override { return true; }
 
 private:
 
@@ -1201,9 +1291,9 @@ private:
   char *bufPtr;
   char *bufEnd;
   char *nextEnd;
-  GBool eof;
+  bool eof;
 
-  GBool fillBuf();
+  bool fillBuf();
 };
 
 //------------------------------------------------------------------------
@@ -1226,9 +1316,9 @@ public:
   int getChar() override;
   int lookChar() override;
   GooString *getPSFilter(int psLevel, const char *indent) override
-    { return NULL; }
-  GBool isBinary(GBool last = gTrue) override { return gTrue; }
-  GBool isEncoder() override { return gTrue; }
+    { return nullptr; }
+  bool isBinary(bool last = true) override { return true; }
+  bool isEncoder() override { return true; }
 
 private:
 
@@ -1239,7 +1329,7 @@ private:
   int inBufLen;
   int outBuf;
   int outBufLen;
-  GBool needEOD;
+  bool needEOD;
 
   void fillBuf();
 };
@@ -1259,18 +1349,18 @@ public:
     { return (bufPtr >= bufEnd && !fillBuf()) ? EOF : (*bufPtr++ & 0xff); }
   int lookChar() override
     { return (bufPtr >= bufEnd && !fillBuf()) ? EOF : (*bufPtr & 0xff); }
-  GooString *getPSFilter(int /*psLevel*/, const char * /*indent*/) override { return NULL; }
-  GBool isBinary(GBool /*last = gTrue*/) override { return gFalse; }
-  GBool isEncoder() override { return gTrue; }
+  GooString *getPSFilter(int /*psLevel*/, const char * /*indent*/) override { return nullptr; }
+  bool isBinary(bool /*last = true*/) override { return false; }
+  bool isEncoder() override { return true; }
 
 private:
 
   char buf[2];
   char *bufPtr;
   char *bufEnd;
-  GBool eof;
+  bool eof;
 
-  GBool fillBuf();
+  bool fillBuf();
 };
 
 //------------------------------------------------------------------------
@@ -1288,18 +1378,18 @@ public:
     { return (bufPtr >= bufEnd && !fillBuf()) ? EOF : (*bufPtr++ & 0xff); }
   int lookChar() override
     { return (bufPtr >= bufEnd && !fillBuf()) ? EOF : (*bufPtr & 0xff); }
-  GooString *getPSFilter(int /*psLevel*/, const char * /*indent*/) override { return NULL; }
-  GBool isBinary(GBool /*last = gTrue*/) override { return gFalse; }
-  GBool isEncoder() override { return gTrue; }
+  GooString *getPSFilter(int /*psLevel*/, const char * /*indent*/) override { return nullptr; }
+  bool isBinary(bool /*last = true*/) override { return false; }
+  bool isEncoder() override { return true; }
 
 private:
 
   char buf[2];
   char *bufPtr;
   char *bufEnd;
-  GBool eof;
+  bool eof;
 
-  GBool fillBuf();
+  bool fillBuf();
 };
 
 #endif

@@ -17,10 +17,6 @@
 #ifndef GOOTIMER_H
 #define GOOTIMER_H
 
-#ifdef USE_GCC_PRAGMAS
-#pragma interface
-#endif
-
 #include "poppler-config.h"
 #include "gtypes.h"
 #ifdef HAVE_GETTIMEOFDAY
@@ -56,7 +52,7 @@ private:
   LARGE_INTEGER start_time;
   LARGE_INTEGER end_time;
 #endif
-  GBool active;
+  bool active;
 };
 
 #endif

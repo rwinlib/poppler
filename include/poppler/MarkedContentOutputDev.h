@@ -5,6 +5,7 @@
 // This file is licensed under the GPLv2 or later
 //
 // Copyright 2013 Igalia S.L.
+// Copyright 2018 Albert Astals Cid <aacid@kde.org>
 //
 //========================================================================
 
@@ -49,7 +50,7 @@ private:
   // Note: Takes ownership of strings, increases refcount for font.
   TextSpan(GooString *text,
            GfxFont *font,
-           const GfxRGB& color)
+           const GfxRGB color)
       : data(new Data) {
     data->text = text;
     data->font = font;
@@ -72,6 +73,9 @@ private:
         font->decRefCnt();
       delete text;
     }
+
+    Data(const Data &) = delete;
+    Data& operator=(const Data &) = delete;
   };
 
   Data *data;
@@ -88,12 +92,12 @@ public:
   MarkedContentOutputDev(int mcidA);
   virtual ~MarkedContentOutputDev();
 
-  virtual GBool isOk() { return gTrue; }
-  GBool upsideDown() override { return gTrue; }
-  GBool useDrawChar() override { return gTrue; }
-  GBool interpretType3Chars() override { return gFalse; }
-  GBool needNonText() override { return gFalse; }
-  GBool needCharCount() override { return gFalse; }
+  virtual bool isOk() { return true; }
+  bool upsideDown() override { return true; }
+  bool useDrawChar() override { return true; }
+  bool interpretType3Chars() override { return false; }
+  bool needNonText() override { return false; }
+  bool needCharCount() override { return false; }
 
   void startPage(int pageNum, GfxState *state, XRef *xref) override;
   void endPage() override;
@@ -105,7 +109,7 @@ public:
                         CharCode c, int nBytes,
                         Unicode *u, int uLen) override;
 
-  void beginMarkedContent(char *name, Dict *properties) override;
+  void beginMarkedContent(const char *name, Dict *properties) override;
   void endMarkedContent(GfxState *state) override;
 
   const TextSpanArray& getTextSpans() const;
@@ -114,7 +118,7 @@ private:
 
   void endSpan();
   bool inMarkedContent() const { return mcidStack.size() > 0; }
-  bool needFontChange(GfxFont* font) const;
+  bool needFontChange(const GfxFont* font) const;
 
   GfxFont         *currentFont;
   GooString       *currentText;

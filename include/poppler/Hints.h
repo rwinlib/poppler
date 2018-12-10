@@ -5,7 +5,7 @@
 // This file is licensed under the GPLv2 or later
 //
 // Copyright 2010 Hib Eris <hib@hiberis.nl>
-// Copyright 2010, 2013, 2016 Albert Astals Cid <aacid@kde.org>
+// Copyright 2010, 2013, 2016, 2018 Albert Astals Cid <aacid@kde.org>
 // Copyright 2013 Adrian Johnson <ajohnson@redneon.com>
 //
 //========================================================================
@@ -33,7 +33,10 @@ public:
   Hints(BaseStream *str, Linearization *linearization, XRef *xref, SecurityHandler *secHdlr);
   ~Hints();
 
-  GBool isOk() const;
+  Hints(const Hints &) = delete;
+  Hints& operator=(const Hints &) = delete;
+
+  bool isOk() const;
 
   int getPageObjectNum(int page);
   Goffset getPageOffset(int page);
@@ -42,8 +45,8 @@ public:
 private:
 
   void readTables(BaseStream *str, Linearization *linearization, XRef *xref, SecurityHandler *secHdlr);
-  GBool readPageOffsetTable(Stream *str);
-  GBool readSharedObjectsTable(Stream *str);
+  bool readPageOffsetTable(Stream *str);
+  bool readSharedObjectsTable(Stream *str);
 
   Guint hintsOffset;
   Guint hintsLength;
@@ -84,7 +87,7 @@ private:
   Guint *groupHasSignature;
   Guint *groupNumObjects;
   Guint *groupXRefOffset;
-  GBool ok;
+  bool ok;
 };
 
 #endif

@@ -25,6 +25,7 @@
 // Copyright (C) 2017 Christoph Cullmann <cullmann@kde.org>
 // Copyright (C) 2017 Thomas Freitag <Thomas.Freitag@alfa.de>
 // Copyright (C) 2018 Mojca Miklavec <mojca@macports.org>
+// Copyright (C) 2019 Christian Persch <chpe@src.gnome.org>
 //
 // To see a description of the changes please see the Changelog file that
 // came with your tarball or type make ChangeLog if you are building from git
@@ -76,15 +77,24 @@ extern "C" {
 #  endif
 #endif
 }
-#include "gtypes.h"
 
 class GooString;
+
+/* Integer type for all file offsets and file sizes */
+typedef long long Goffset;
 
 //------------------------------------------------------------------------
 
 // Append a file name to a path string.  <path> may be an empty
 // string, denoting the current directory).  Returns <path>.
 extern GooString *appendToPath(GooString *path, const char *fileName);
+
+#ifndef _WIN32
+// Open a file descriptor
+// Could be implemented on WIN32 too, but the only external caller of
+// this function is not used on WIN32
+extern int openFileDescriptor(const char *path, int flags);
+#endif
 
 // Open a file.  On Windows, this converts the path from UTF-8 to
 // UCS-2 and calls _wfopen (if available).  On other OSes, this simply

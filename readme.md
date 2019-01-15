@@ -1,8 +1,7 @@
-# Poppler 0.72.1
+# Poppler 0.73.0
 
-This is a build of poppler 0.72.0 with some patches:
+This is a build of poppler 0.73.0 with one patch:
 
- - Backport two patches from poppler 0.73.0 to fix UTF-8
  - Patch to make it work with GCC 4.9.3 which had some conflict with `timegm`
 
 For more details see [PKGBUILD](mingw-w64-poppler/PKGBUILD).

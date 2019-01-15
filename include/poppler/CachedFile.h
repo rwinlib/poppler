@@ -17,7 +17,6 @@
 
 #include "poppler-config.h"
 
-#include "goo/gtypes.h"
 #include "Object.h"
 #include "Stream.h"
 
@@ -50,7 +49,7 @@ public:
   CachedFile(const CachedFile &) = delete;
   CachedFile& operator=(const CachedFile &) = delete;
 
-  Guint getLength() { return length; }
+  unsigned int getLength() { return length; }
   long int tell();
   int seek(long int offset, int origin);
   size_t read(void * ptr, size_t unitsize, size_t count);
@@ -141,7 +140,7 @@ public:
   // The caller is responsible for deleting uri and cachedFile.
   virtual size_t init(GooString *uri, CachedFile *cachedFile) = 0;
 
-  // Loads speficified byte ranges and passes it to the writer to store them.
+  // Loads specified byte ranges and passes it to the writer to store them.
   // Returns 0 on success, Anything but 0 on failure.
   // The caller is responsible for deleting the writer.
   virtual int load(const std::vector<ByteRange> &ranges, CachedFileWriter *writer) = 0;

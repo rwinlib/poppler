@@ -14,7 +14,7 @@
 // under GPL version 2 or later
 //
 // Copyright (C) 2008 Koji Otani <sho@bbr.jp>
-// Copyright (C) 2009, 2018 Albert Astals Cid <aacid@kde.org>
+// Copyright (C) 2009, 2018-2020 Albert Astals Cid <aacid@kde.org>
 // Copyright (C) 2012, 2017 Adrian Johnson <ajohnson@redneon.com>
 // Copyright (C) 2018 Adam Reichold <adam.reichold@t-online.de>
 //
@@ -39,104 +39,92 @@ class Stream;
 
 //------------------------------------------------------------------------
 
-class CMap {
+class CMap
+{
 public:
+    // Parse a CMap from <obj>, which can be a name or a stream.  Sets
+    // the initial reference count to 1.  Returns NULL on failure.
+    static CMap *parse(CMapCache *cache, const GooString *collectionA, Object *obj);
 
-  // Parse a CMap from <obj>, which can be a name or a stream.  Sets
-  // the initial reference count to 1.  Returns NULL on failure.
-  static CMap *parse(CMapCache *cache, const GooString *collectionA, Object *obj);
+    // Create the CMap specified by <collection> and <cMapName>.  Sets
+    // the initial reference count to 1.  Returns NULL on failure.
+    static CMap *parse(CMapCache *cache, const GooString *collectionA, const GooString *cMapNameA);
 
-  // Create the CMap specified by <collection> and <cMapName>.  Sets
-  // the initial reference count to 1.  Returns NULL on failure.
-  static CMap *parse(CMapCache *cache, const GooString *collectionA,
-		     const GooString *cMapNameA);
+    // Parse a CMap from <str>.  Sets the initial reference count to 1.
+    // Returns NULL on failure.
+    static CMap *parse(CMapCache *cache, const GooString *collectionA, Stream *str);
 
-  // Parse a CMap from <str>.  Sets the initial reference count to 1.
-  // Returns NULL on failure.
-  static CMap *parse(CMapCache *cache, const GooString *collectionA, Stream *str);
+    ~CMap();
 
-  // Create the CMap specified by <collection> and <cMapName>.  Sets
-  // the initial reference count to 1.
-  // Stream is a stream containing the CMap, can be NULL and 
-  // this means the CMap will be searched in the CMap files
-  // Returns NULL on failure.
-  static CMap *parse(CMapCache *cache, const GooString *collectionA,
-		     const GooString *cMapNameA, Stream *stream);
+    CMap(const CMap &) = delete;
+    CMap &operator=(const CMap &) = delete;
 
-  ~CMap();
+    void incRefCnt();
+    void decRefCnt();
 
-  CMap(const CMap &) = delete;
-  CMap& operator=(const CMap &) = delete;
+    // Return collection name (<registry>-<ordering>).
+    const GooString *getCollection() const { return collection; }
 
-  void incRefCnt();
-  void decRefCnt();
+    const GooString *getCMapName() const { return cMapName; }
 
-  // Return collection name (<registry>-<ordering>).
-  GooString *getCollection() { return collection; }
+    // Return true if this CMap matches the specified <collectionA>, and
+    // <cMapNameA>.
+    bool match(const GooString *collectionA, const GooString *cMapNameA);
 
-  GooString *getCMapName() { return cMapName; }
+    // Return the CID corresponding to the character code starting at
+    // <s>, which contains <len> bytes.  Sets *<c> to the char code, and
+    // *<nUsed> to the number of bytes used by the char code.
+    CID getCID(const char *s, int len, CharCode *c, int *nUsed);
 
-  // Return true if this CMap matches the specified <collectionA>, and
-  // <cMapNameA>.
-  bool match(const GooString *collectionA, const GooString *cMapNameA);
+    // Return the writing mode (0=horizontal, 1=vertical).
+    int getWMode() const { return wMode; }
 
-  // Return the CID corresponding to the character code starting at
-  // <s>, which contains <len> bytes.  Sets *<c> to the char code, and
-  // *<nUsed> to the number of bytes used by the char code.
-  CID getCID(const char *s, int len, CharCode *c, int *nUsed);
-
-  // Return the writing mode (0=horizontal, 1=vertical).
-  int getWMode() { return wMode; }
-
-  void setReverseMap(unsigned int *rmap, unsigned int rmapSize, unsigned int ncand);
+    void setReverseMap(unsigned int *rmap, unsigned int rmapSize, unsigned int ncand);
 
 private:
+    void parse2(CMapCache *cache, int (*getCharFunc)(void *), void *data);
+    CMap(GooString *collectionA, GooString *cMapNameA);
+    CMap(GooString *collectionA, GooString *cMapNameA, int wModeA);
+    void useCMap(CMapCache *cache, const char *useName);
+    void useCMap(CMapCache *cache, Object *obj);
+    void copyVector(CMapVectorEntry *dest, CMapVectorEntry *src);
+    void addCIDs(unsigned int start, unsigned int end, unsigned int nBytes, CID firstCID);
+    void freeCMapVector(CMapVectorEntry *vec);
+    void setReverseMapVector(unsigned int startCode, CMapVectorEntry *vec, unsigned int *rmap, unsigned int rmapSize, unsigned int ncand);
 
-  void parse2(CMapCache *cache, int (*getCharFunc)(void *), void *data);
-  CMap(GooString *collectionA, GooString *cMapNameA);
-  CMap(GooString *collectionA, GooString *cMapNameA, int wModeA);
-  void useCMap(CMapCache *cache, char *useName);
-  void useCMap(CMapCache *cache, Object *obj);
-  void copyVector(CMapVectorEntry *dest, CMapVectorEntry *src);
-  void addCIDs(unsigned int start, unsigned int end, unsigned int nBytes, CID firstCID);
-  void freeCMapVector(CMapVectorEntry *vec);
-  void setReverseMapVector(unsigned int startCode, CMapVectorEntry *vec,
-          unsigned int *rmap, unsigned int rmapSize, unsigned int ncand);
-
-  GooString *collection;
-  GooString *cMapName;
-  bool isIdent;		// true if this CMap is an identity mapping,
-				//   or is based on one (via usecmap)
-  int wMode;			// writing mode (0=horizontal, 1=vertical)
-  CMapVectorEntry *vector;	// vector for first byte (NULL for
-				//   identity CMap)
-  std::atomic_int refCnt;
+    GooString *collection;
+    GooString *cMapName;
+    bool isIdent; // true if this CMap is an identity mapping,
+                  //   or is based on one (via usecmap)
+    int wMode; // writing mode (0=horizontal, 1=vertical)
+    CMapVectorEntry *vector; // vector for first byte (NULL for
+                             //   identity CMap)
+    std::atomic_int refCnt;
 };
 
 //------------------------------------------------------------------------
 
 #define cMapCacheSize 4
 
-class CMapCache {
+class CMapCache
+{
 public:
+    CMapCache();
+    ~CMapCache();
 
-  CMapCache();
-  ~CMapCache();
+    CMapCache(const CMapCache &) = delete;
+    CMapCache &operator=(const CMapCache &) = delete;
 
-  CMapCache(const CMapCache &) = delete;
-  CMapCache& operator=(const CMapCache &) = delete;
-
-  // Get the <cMapName> CMap for the specified character collection.
-  // Increments its reference count; there will be one reference for
-  // the cache plus one for the caller of this function.
-  // Stream is a stream containing the CMap, can be NULL and 
-  // this means the CMap will be searched in the CMap files
-  // Returns NULL on failure.
-  CMap *getCMap(const GooString *collection, const GooString *cMapName, Stream *stream);
+    // Get the <cMapName> CMap for the specified character collection.
+    // Increments its reference count; there will be one reference for
+    // the cache plus one for the caller of this function.
+    // Stream is a stream containing the CMap, can be NULL and
+    // this means the CMap will be searched in the CMap files
+    // Returns NULL on failure.
+    CMap *getCMap(const GooString *collection, const GooString *cMapName);
 
 private:
-
-  CMap *cache[cMapCacheSize];
+    CMap *cache[cMapCacheSize];
 };
 
 #endif

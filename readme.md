@@ -1,9 +1,5 @@
-# Poppler 0.73.0
+# Poppler 21.04.0
 
-This is a build of poppler 0.73.0 with one patch:
+Built using [mingw-w64-poppler](https://github.com/r-windows/rtools-packages/tree/master/mingw-w64-poppler) from rtools-packages.
 
- - Patch to make it work with GCC 4.9.3 which had some conflict with `timegm`
-
-For more details see [PKGBUILD](mingw-w64-poppler/PKGBUILD).
- 
-We need to build with `-Dpoppler_cpp_EXPORTS -DOPJ_STATIC` for static linking. If you get libopenjpeg linking errors, you probably need to rebuild libopenjpeg with rtools, or just copy the version from rwinlib into msys2.
+This stack only works for R-4.0 and up because poppler no longer supports GCC < 5. 

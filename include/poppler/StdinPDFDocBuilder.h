@@ -6,6 +6,7 @@
 //
 // Copyright 2010 Hib Eris <hib@hiberis.nl>
 // Copyright 2010, 2018 Albert Astals Cid <aacid@kde.org>
+// Copyright 2021 Oliver Sander <oliver.sander@tu-dresden.de>
 //
 //========================================================================
 
@@ -20,13 +21,12 @@
 // The StdinPDFDocBuilder implements a PDFDocBuilder that read from stdin.
 //------------------------------------------------------------------------
 
-class StdinPDFDocBuilder : public PDFDocBuilder {
+class StdinPDFDocBuilder : public PDFDocBuilder
+{
 
 public:
-  PDFDoc *buildPDFDoc(const GooString &uri, GooString *ownerPassword = nullptr,
-                      GooString *userPassword = nullptr, void *guiDataA = nullptr) override;
-  bool supports(const GooString &uri) override;
-
+    std::unique_ptr<PDFDoc> buildPDFDoc(const GooString &uri, GooString *ownerPassword = nullptr, GooString *userPassword = nullptr, void *guiDataA = nullptr) override;
+    bool supports(const GooString &uri) override;
 };
 
 #endif /* STDINPDFDOCBUILDER_H */

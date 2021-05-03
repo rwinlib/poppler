@@ -2,7 +2,7 @@
 //
 // DateInfo.h
 //
-// Copyright (C) 2008, 2018 Albert Astals Cid <aacid@kde.org>
+// Copyright (C) 2008, 2018, 2019 Albert Astals Cid <aacid@kde.org>
 // Copyright (C) 2009 Carlos Garcia Campos <carlosgc@gnome.org>
 // Copyright (C) 2015 André Guerreiro <aguerreiro1985@gmail.com>
 // Copyright (C) 2015 André Esser <bepandre@hotmail.com>
@@ -25,18 +25,20 @@
 #define DATE_INFO_H
 
 #include "goo/GooString.h"
-#include <time.h>
+#include "poppler_private_export.h"
+#include <ctime>
 
-bool parseDateString(const char *string, int *year, int *month, int *day, int *hour, int *minute, int *second, char *tz, int *tzHour, int *tzMinute);
+bool POPPLER_PRIVATE_EXPORT parseDateString(const char *string, int *year, int *month, int *day, int *hour, int *minute, int *second, char *tz, int *tzHour, int *tzMinute);
 
 /* Converts the time_t into a PDF Date format string.
- * If timet is NULL, current time is used.
+ * If timeA is NULL, current time is used.
+ * Returns new GooString. Free with delete.
  */
-GooString *timeToDateString(time_t *timet);
+GooString POPPLER_PRIVATE_EXPORT *timeToDateString(const time_t *timeA);
 
 /* Convert PDF date string to time.
  * Returns -1 if conversion fails.
  */
-time_t dateStringToTime(const GooString *dateString);
+time_t POPPLER_PRIVATE_EXPORT dateStringToTime(const GooString *dateString);
 
 #endif

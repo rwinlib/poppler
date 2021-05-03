@@ -36,45 +36,41 @@
 #define GFILE_H
 
 #include "poppler-config.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <stddef.h>
-#include <time.h>
+#include "poppler_private_export.h"
+#include <cstdio>
+#include <cstdlib>
+#include <cstddef>
+#include <ctime>
 extern "C" {
 #if defined(_WIN32)
-#  include <sys/stat.h>
-#  ifdef FPTEX
-#    include <win32lib.h>
-#  else
-#    ifndef NOMINMAX
-#      define NOMINMAX
+#    include <sys/stat.h>
+#    ifdef FPTEX
+#        include <win32lib.h>
+#    else
+#        ifndef NOMINMAX
+#            define NOMINMAX
+#        endif
+#        include <windows.h>
 #    endif
-#    include <windows.h>
-#  endif
-#elif defined(ACORN)
-#elif defined(MACOS)
-#  include <ctime.h>
 #else
-#  include <unistd.h>
-#  include <sys/types.h>
-#  if defined(VMS)
-#    include "vms_dirent.h"
-#  elif defined(HAVE_DIRENT_H)
-#    include <dirent.h>
-#    define NAMLEN(d) strlen((d)->d_name)
-#  else
-#    define dirent direct
-#    define NAMLEN(d) (d)->d_namlen
-#    ifdef HAVE_SYS_NDIR_H
-#      include <sys/ndir.h>
+#    include <unistd.h>
+#    include <sys/types.h>
+#    if defined(HAVE_DIRENT_H)
+#        include <dirent.h>
+#        define NAMLEN(d) strlen((d)->d_name)
+#    else
+#        define dirent direct
+#        define NAMLEN(d) (d)->d_namlen
+#        ifdef HAVE_SYS_NDIR_H
+#            include <sys/ndir.h>
+#        endif
+#        ifdef HAVE_SYS_DIR_H
+#            include <sys/dir.h>
+#        endif
+#        ifdef HAVE_NDIR_H
+#            include <ndir.h>
+#        endif
 #    endif
-#    ifdef HAVE_SYS_DIR_H
-#      include <sys/dir.h>
-#    endif
-#    ifdef HAVE_NDIR_H
-#      include <ndir.h>
-#    endif
-#  endif
 #endif
 }
 
@@ -87,27 +83,27 @@ typedef long long Goffset;
 
 // Append a file name to a path string.  <path> may be an empty
 // string, denoting the current directory).  Returns <path>.
-extern GooString *appendToPath(GooString *path, const char *fileName);
+extern GooString POPPLER_PRIVATE_EXPORT *appendToPath(GooString *path, const char *fileName);
 
 #ifndef _WIN32
 // Open a file descriptor
 // Could be implemented on WIN32 too, but the only external caller of
 // this function is not used on WIN32
-extern int openFileDescriptor(const char *path, int flags);
+extern int POPPLER_PRIVATE_EXPORT openFileDescriptor(const char *path, int flags);
 #endif
 
 // Open a file.  On Windows, this converts the path from UTF-8 to
 // UCS-2 and calls _wfopen (if available).  On other OSes, this simply
 // calls fopen.
-extern FILE *openFile(const char *path, const char *mode);
+extern FILE POPPLER_PRIVATE_EXPORT *openFile(const char *path, const char *mode);
 
 // Just like fgets, but handles Unix, Mac, and/or DOS end-of-line
 // conventions.
-extern char *getLine(char *buf, int size, FILE *f);
+extern char POPPLER_PRIVATE_EXPORT *getLine(char *buf, int size, FILE *f);
 
 // Like fseek/ftell but uses platform specific variants that support large files
-extern int Gfseek(FILE *f, Goffset offset, int whence);
-extern Goffset Gftell(FILE *f);
+extern int POPPLER_PRIVATE_EXPORT Gfseek(FILE *f, Goffset offset, int whence);
+extern Goffset POPPLER_PRIVATE_EXPORT Gftell(FILE *f);
 
 // Largest offset supported by Gfseek/Gftell
 extern Goffset GoffsetMax();
@@ -116,38 +112,38 @@ extern Goffset GoffsetMax();
 // GooFile
 //------------------------------------------------------------------------
 
-class GooFile
+class POPPLER_PRIVATE_EXPORT GooFile
 {
 public:
-  GooFile(const GooFile &) = delete;
-  GooFile& operator=(const GooFile &other) = delete;
+    GooFile(const GooFile &) = delete;
+    GooFile &operator=(const GooFile &other) = delete;
 
-  int read(char *buf, int n, Goffset offset) const;
-  Goffset size() const;
-  
-  static GooFile *open(const GooString *fileName);
-  
+    int read(char *buf, int n, Goffset offset) const;
+    Goffset size() const;
+
+    static GooFile *open(const GooString *fileName);
+
 #ifdef _WIN32
-  static GooFile *open(const wchar_t *fileName);
-  
-  ~GooFile() { CloseHandle(handle); }
+    static GooFile *open(const wchar_t *fileName);
 
-  // Asuming than on windows you can't change files that are already open
-  bool modificationTimeChangedSinceOpen() const;
-  
+    ~GooFile() { CloseHandle(handle); }
+
+    // Asuming than on windows you can't change files that are already open
+    bool modificationTimeChangedSinceOpen() const;
+
 private:
-  GooFile(HANDLE handleA);
-  HANDLE handle;
-  struct _FILETIME modifiedTimeOnOpen;
+    GooFile(HANDLE handleA);
+    HANDLE handle;
+    struct _FILETIME modifiedTimeOnOpen;
 #else
-  ~GooFile() { close(fd); }
+    ~GooFile() { close(fd); }
 
-  bool modificationTimeChangedSinceOpen() const;
-    
+    bool modificationTimeChangedSinceOpen() const;
+
 private:
-  GooFile(int fdA);
-  int fd;
-  struct timespec modifiedTimeOnOpen;
+    GooFile(int fdA);
+    int fd;
+    struct timespec modifiedTimeOnOpen;
 #endif // _WIN32
 };
 

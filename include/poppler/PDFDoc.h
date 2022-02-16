@@ -14,7 +14,7 @@
 // under GPL version 2 or later
 //
 // Copyright (C) 2005, 2006, 2008 Brad Hards <bradh@frogmouth.net>
-// Copyright (C) 2005, 2009, 2014, 2015, 2017-2020 Albert Astals Cid <aacid@kde.org>
+// Copyright (C) 2005, 2009, 2014, 2015, 2017-2021 Albert Astals Cid <aacid@kde.org>
 // Copyright (C) 2008 Julien Rebetez <julienr@svn.gnome.org>
 // Copyright (C) 2008 Pino Toscano <pino@kde.org>
 // Copyright (C) 2008 Carlos Garcia Campos <carlosgc@gnome.org>
@@ -34,6 +34,10 @@
 // Copyright (C) 2018 Evangelos Rigas <erigas@rnd2.org>
 // Copyright (C) 2020, 2021 Oliver Sander <oliver.sander@tu-dresden.de>
 // Copyright (C) 2020 Nelson Benítez León <nbenitezl@gmail.com>
+// Copyright (C) 2021 Mahmoud Khalil <mahmoudkhalil11@gmail.com>
+// Copyright (C) 2021 Georgiy Sgibnev <georgiy@sgibnev.com>. Work sponsored by lab50.net.
+// Copyright (C) 2021 Marek Kasik <mkasik@redhat.com>
+// Copyright (C) 2022 Felix Jung <fxjung@posteo.de>
 //
 // To see a description of the changes please see the Changelog file that
 // came with your tarball or type make ChangeLog if you are building from git
@@ -43,11 +47,14 @@
 #ifndef PDFDOC_H
 #define PDFDOC_H
 
+#include <algorithm>
+#include <cstdio>
 #include <mutex>
 
 #include "poppler-config.h"
+
 #include "poppler_private_export.h"
-#include <cstdio>
+
 #include "XRef.h"
 #include "Catalog.h"
 #include "Page.h"
@@ -121,13 +128,13 @@ enum PDFSubtypeConformance
 class POPPLER_PRIVATE_EXPORT PDFDoc
 {
 public:
-    PDFDoc(const GooString *fileNameA, const GooString *ownerPassword = nullptr, const GooString *userPassword = nullptr, void *guiDataA = nullptr);
+    explicit PDFDoc(const GooString *fileNameA, const GooString *ownerPassword = nullptr, const GooString *userPassword = nullptr, void *guiDataA = nullptr, const std::function<void()> &xrefReconstructedCallback = {});
 
 #ifdef _WIN32
-    PDFDoc(wchar_t *fileNameA, int fileNameLen, GooString *ownerPassword = nullptr, GooString *userPassword = nullptr, void *guiDataA = nullptr);
+    PDFDoc(wchar_t *fileNameA, int fileNameLen, GooString *ownerPassword = nullptr, GooString *userPassword = nullptr, void *guiDataA = nullptr, const std::function<void()> &xrefReconstructedCallback = {});
 #endif
 
-    PDFDoc(BaseStream *strA, const GooString *ownerPassword = nullptr, const GooString *userPassword = nullptr, void *guiDataA = nullptr);
+    explicit PDFDoc(BaseStream *strA, const GooString *ownerPassword = nullptr, const GooString *userPassword = nullptr, void *guiDataA = nullptr, const std::function<void()> &xrefReconstructedCallback = {});
     ~PDFDoc();
 
     PDFDoc(const PDFDoc &) = delete;
@@ -179,7 +186,7 @@ public:
 
     // Return the contents of the metadata stream, or nullptr if there is
     // no metadata.
-    const GooString *readMetadata() const { return catalog->readMetadata(); }
+    std::unique_ptr<GooString> readMetadata() const { return catalog->readMetadata(); }
 
     // Return the structure tree root object.
     const StructTreeRoot *getStructTreeRoot() const { return catalog->getStructTreeRoot(); }
@@ -205,7 +212,7 @@ public:
 
     // Returns the links for the current page, transferring ownership to
     // the caller.
-    Links *getLinks(int page);
+    std::unique_ptr<Links> getLinks(int page);
 
     // Find a named destination.  Returns the link destination, or
     // nullptr if <name> is not a destination.
@@ -221,6 +228,7 @@ public:
     bool isEncrypted() { return xref->isEncrypted(); }
 
     std::vector<FormFieldSignature *> getSignatureFields();
+    int getNumSignatureFields();
 
     // Check various permissions.
     bool okToPrint(bool ignoreOwnerPW = false) { return xref->okToPrint(ignoreOwnerPW); }
@@ -260,26 +268,35 @@ public:
 
     // Get document's properties from document's Info dictionary.
     // Returns nullptr on fail.
-    // Returned GooStrings should be freed by the caller.
-    GooString *getDocInfoStringEntry(const char *key);
+    std::unique_ptr<GooString> getDocInfoStringEntry(const char *key);
 
-    GooString *getDocInfoTitle() { return getDocInfoStringEntry("Title"); }
-    GooString *getDocInfoAuthor() { return getDocInfoStringEntry("Author"); }
-    GooString *getDocInfoSubject() { return getDocInfoStringEntry("Subject"); }
-    GooString *getDocInfoKeywords() { return getDocInfoStringEntry("Keywords"); }
-    GooString *getDocInfoCreator() { return getDocInfoStringEntry("Creator"); }
-    GooString *getDocInfoProducer() { return getDocInfoStringEntry("Producer"); }
-    GooString *getDocInfoCreatDate() { return getDocInfoStringEntry("CreationDate"); }
-    GooString *getDocInfoModDate() { return getDocInfoStringEntry("ModDate"); }
+    std::unique_ptr<GooString> getDocInfoTitle() { return getDocInfoStringEntry("Title"); }
+    std::unique_ptr<GooString> getDocInfoAuthor() { return getDocInfoStringEntry("Author"); }
+    std::unique_ptr<GooString> getDocInfoSubject() { return getDocInfoStringEntry("Subject"); }
+    std::unique_ptr<GooString> getDocInfoKeywords() { return getDocInfoStringEntry("Keywords"); }
+    std::unique_ptr<GooString> getDocInfoCreator() { return getDocInfoStringEntry("Creator"); }
+    std::unique_ptr<GooString> getDocInfoProducer() { return getDocInfoStringEntry("Producer"); }
+    std::unique_ptr<GooString> getDocInfoCreatDate() { return getDocInfoStringEntry("CreationDate"); }
+    std::unique_ptr<GooString> getDocInfoModDate() { return getDocInfoStringEntry("ModDate"); }
 
     // Return the PDF subtype, part, and conformance
     PDFSubtype getPDFSubtype() const { return pdfSubtype; }
     PDFSubtypePart getPDFSubtypePart() const { return pdfPart; }
     PDFSubtypeConformance getPDFSubtypeConformance() const { return pdfConformance; }
 
-    // Return the PDF version specified by the file.
-    int getPDFMajorVersion() const { return pdfMajorVersion; }
-    int getPDFMinorVersion() const { return pdfMinorVersion; }
+    // Return the PDF version specified by the file (either header or catalog).
+    int getPDFMajorVersion() const { return std::max(headerPdfMajorVersion, catalog ? catalog->getPDFMajorVersion() : 0); }
+    int getPDFMinorVersion() const
+    {
+        const int catalogMajorVersion = catalog ? catalog->getPDFMajorVersion() : 0;
+        if (catalogMajorVersion > headerPdfMajorVersion) {
+            return catalog->getPDFMinorVersion();
+        } else if (headerPdfMajorVersion > catalogMajorVersion) {
+            return headerPdfMinorVersion;
+        } else {
+            return std::max(headerPdfMinorVersion, catalog ? catalog->getPDFMinorVersion() : 0);
+        }
+    }
 
     // Return the PDF ID in the trailer dictionary (if any).
     bool getID(GooString *permanent_id, GooString *update_id) const;
@@ -315,6 +332,14 @@ public:
     // scans the PDF and returns whether it contains any javascript
     bool hasJavascript();
 
+    // Arguments signatureText and signatureTextLeft are UTF-16 big endian strings with BOM.
+    // Arguments reason and location are UTF-16 big endian strings with BOM. An empty string and nullptr are acceptable too.
+    // Argument imagePath is a background image (a path to a file).
+    // sign() takes ownership of partialFieldName.
+    bool sign(const char *saveFilename, const char *certNickname, const char *password, GooString *partialFieldName, int page, const PDFRectangle &rect, const GooString &signatureText, const GooString &signatureTextLeft, double fontSize,
+              double leftFontSize, std::unique_ptr<AnnotColor> &&fontColor, double borderWidth, std::unique_ptr<AnnotColor> &&borderColor, std::unique_ptr<AnnotColor> &&backgroundColor, const GooString *reason = nullptr,
+              const GooString *location = nullptr, const std::string &imagePath = "", const GooString *ownerPassword = nullptr, const GooString *userPassword = nullptr);
+
 private:
     // insert referenced objects in XRef
     void markDictionnary(Dict *dict, XRef *xRef, XRef *countRef, unsigned int numOffset, int oldRefNum, int newRefNum, std::set<Dict *> *alreadyMarkedDicts);
@@ -344,7 +369,7 @@ private:
 
     PDFDoc();
     void init();
-    bool setup(const GooString *ownerPassword, const GooString *userPassword);
+    bool setup(const GooString *ownerPassword, const GooString *userPassword, const std::function<void()> &xrefReconstructedCallback);
     bool checkFooter();
     void checkHeader();
     bool checkEncryption(const GooString *ownerPassword, const GooString *userPassword);
@@ -364,8 +389,8 @@ private:
     GooFile *file;
     BaseStream *str;
     void *guiData;
-    int pdfMajorVersion;
-    int pdfMinorVersion;
+    int headerPdfMajorVersion;
+    int headerPdfMinorVersion;
     PDFSubtype pdfSubtype;
     PDFSubtypePart pdfPart;
     PDFSubtypeConformance pdfConformance;

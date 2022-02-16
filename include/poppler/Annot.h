@@ -21,7 +21,7 @@
 // Copyright (C) 2008 Hugo Mercier <hmercier31@gmail.com>
 // Copyright (C) 2008 Pino Toscano <pino@kde.org>
 // Copyright (C) 2008 Tomas Are Haavet <tomasare@gmail.com>
-// Copyright (C) 2009-2011, 2013, 2016-2020 Albert Astals Cid <aacid@kde.org>
+// Copyright (C) 2009-2011, 2013, 2016-2022 Albert Astals Cid <aacid@kde.org>
 // Copyright (C) 2012, 2013 Fabio D'Urso <fabiodurso@hotmail.it>
 // Copyright (C) 2012, 2015 Tobias Koenig <tokoe@kdab.com>
 // Copyright (C) 2013 Thomas Freitag <Thomas.Freitag@alfa.de>
@@ -37,6 +37,11 @@
 // Copyright (C) 2020 Klarälvdalens Datakonsult AB, a KDAB Group company, <info@kdab.com>. Work sponsored by Technische Universität Dresden
 // Copyright (C) 2020 Katarina Behrens <Katarina.Behrens@cib.de>
 // Copyright (C) 2020 Thorsten Behrens <Thorsten.Behrens@CIB.de>
+// Copyright (C) 2021 Klarälvdalens Datakonsult AB, a KDAB Group company, <info@kdab.com>.
+// Copyright (C) 2021 Zachary Travis <ztravis@everlaw.com>
+// Copyright (C) 2021 Mahmoud Ahmed Khalil <mahmoudkhalil11@gmail.com>
+// Copyright (C) 2021 Georgiy Sgibnev <georgiy@sgibnev.com>. Work sponsored by lab50.net.
+// Copyright (C) 2022 Martin <martinbts@gmx.net>
 //
 // To see a description of the changes please see the Changelog file that
 // came with your tarball or type make ChangeLog if you are building from git
@@ -51,6 +56,7 @@
 #include <mutex>
 #include <vector>
 
+#include "AnnotStampImageHelper.h"
 #include "Object.h"
 #include "poppler_private_export.h"
 
@@ -119,8 +125,8 @@ class POPPLER_PRIVATE_EXPORT AnnotPath
 {
 public:
     AnnotPath();
-    AnnotPath(Array *array);
-    AnnotPath(std::vector<AnnotCoord> &&coords);
+    explicit AnnotPath(Array *array);
+    explicit AnnotPath(std::vector<AnnotCoord> &&coords);
     ~AnnotPath();
 
     AnnotPath(const AnnotPath &) = delete;
@@ -189,7 +195,7 @@ public:
         borderEffectCloudy // C
     };
 
-    AnnotBorderEffect(Dict *dict);
+    explicit AnnotBorderEffect(Dict *dict);
 
     AnnotBorderEffectType getEffectType() const { return effectType; }
     double getIntensity() const { return intensity; }
@@ -273,6 +279,7 @@ public:
     virtual AnnotBorderStyle getStyle() const { return style; }
 
     virtual Object writeToObject(XRef *xref) const = 0;
+    virtual std::unique_ptr<AnnotBorder> copy() const = 0;
 
 protected:
     AnnotBorder();
@@ -295,13 +302,15 @@ class POPPLER_PRIVATE_EXPORT AnnotBorderArray : public AnnotBorder
 {
 public:
     AnnotBorderArray();
-    AnnotBorderArray(Array *array);
+    explicit AnnotBorderArray(Array *array);
 
     void setHorizontalCorner(double hc) { horizontalCorner = hc; }
     void setVerticalCorner(double vc) { verticalCorner = vc; }
 
     double getHorizontalCorner() const { return horizontalCorner; }
     double getVerticalCorner() const { return verticalCorner; }
+
+    std::unique_ptr<AnnotBorder> copy() const override;
 
 private:
     AnnotBorderType getType() const override { return typeArray; }
@@ -320,13 +329,15 @@ class AnnotBorderBS : public AnnotBorder
 {
 public:
     AnnotBorderBS();
-    AnnotBorderBS(Dict *dict);
+    explicit AnnotBorderBS(Dict *dict);
 
 private:
     AnnotBorderType getType() const override { return typeBS; }
     Object writeToObject(XRef *xref) const override;
 
     const char *getStyleName() const;
+
+    std::unique_ptr<AnnotBorder> copy() const override;
 
     // double width;           // W  (Default 1)   (inherited from AnnotBorder)
     // AnnotBorderStyle style; // S  (Default S)   (inherited from AnnotBorder)
@@ -349,10 +360,10 @@ public:
     };
 
     AnnotColor();
-    AnnotColor(double gray);
+    explicit AnnotColor(double gray);
     AnnotColor(double r, double g, double b);
     AnnotColor(double c, double m, double y, double k);
-    AnnotColor(Array *array, int adjust = 0);
+    explicit AnnotColor(Array *array, int adjust = 0);
 
     void adjustColor(int adjust);
 
@@ -373,15 +384,15 @@ private:
 class POPPLER_PRIVATE_EXPORT DefaultAppearance
 {
 public:
-    DefaultAppearance(Object &&fontNameA, double fontPtSizeA, std::unique_ptr<AnnotColor> fontColorA);
-    DefaultAppearance(GooString *da);
+    DefaultAppearance(Object &&fontNameA, double fontPtSizeA, std::unique_ptr<AnnotColor> &&fontColorA);
+    explicit DefaultAppearance(const GooString *da);
     void setFontName(Object &&fontNameA);
     const Object &getFontName() const { return fontName; }
     void setFontPtSize(double fontPtSizeA);
     double getFontPtSize() const { return fontPtSize; }
     void setFontColor(std::unique_ptr<AnnotColor> fontColorA);
     const AnnotColor *getFontColor() const { return fontColor.get(); }
-    GooString *toAppearanceString() const;
+    std::string toAppearanceString() const;
 
     DefaultAppearance(const DefaultAppearance &) = delete;
     DefaultAppearance &operator=(const DefaultAppearance &) = delete;
@@ -413,7 +424,7 @@ public:
         scaleProportional // P
     };
 
-    AnnotIconFit(Dict *dict);
+    explicit AnnotIconFit(Dict *dict);
 
     AnnotIconFitScaleWhen getScaleWhen() { return scaleWhen; }
     AnnotIconFitScale getScale() { return scale; }
@@ -488,7 +499,7 @@ public:
         captionOverlaid // 6
     };
 
-    AnnotAppearanceCharacs(Dict *dict);
+    explicit AnnotAppearanceCharacs(Dict *dict);
     ~AnnotAppearanceCharacs();
 
     AnnotAppearanceCharacs(const AnnotAppearanceCharacs &) = delete;
@@ -504,6 +515,8 @@ public:
     const GooString *getAlternateCaption() { return alternateCaption.get(); }
     const AnnotIconFit *getIconFit() { return iconFit.get(); }
     AnnotAppearanceCharacsTextPos getPosition() const { return position; }
+
+    std::unique_ptr<AnnotAppearanceCharacs> copy() const;
 
 protected:
     int rotation; // R  (Default 0)
@@ -526,7 +539,7 @@ protected:
 class AnnotAppearanceBBox
 {
 public:
-    AnnotAppearanceBBox(PDFRectangle *rect);
+    explicit AnnotAppearanceBBox(PDFRectangle *rect);
 
     void setBorderWidth(double w) { borderWidth = w; }
 
@@ -573,7 +586,7 @@ public:
     void drawLineEndSlash(double x, double y, double size, const Matrix &m);
     void drawFieldBorder(const FormField *field, const AnnotBorder *border, const AnnotAppearanceCharacs *appearCharacs, const PDFRectangle *rect);
     bool drawFormField(const FormField *field, const Form *form, const GfxResources *resources, const GooString *da, const AnnotBorder *border, const AnnotAppearanceCharacs *appearCharacs, const PDFRectangle *rect,
-                       const GooString *appearState, XRef *xref, bool *addedDingbatsResource, Dict *resourcesDict);
+                       const GooString *appearState, XRef *xref, Dict *resourcesDict);
     static double lineEndingXShorten(AnnotLineEndingStyle endingStyle, double size);
     static double lineEndingXExtendBBox(AnnotLineEndingStyle endingStyle, double size);
     void writeString(const GooString &str);
@@ -584,16 +597,18 @@ public:
     const GooString *buffer() const;
 
 private:
-    bool drawListBox(const FormFieldChoice *fieldChoice, const AnnotBorder *border, const PDFRectangle *rect, const GooString *da, const GfxResources *resources, int quadding);
+    bool drawListBox(const FormFieldChoice *fieldChoice, const AnnotBorder *border, const PDFRectangle *rect, const GooString *da, const GfxResources *resources, int quadding, XRef *xref, Dict *resourcesDict);
     bool drawFormFieldButton(const FormFieldButton *field, const GfxResources *resources, const GooString *da, const AnnotBorder *border, const AnnotAppearanceCharacs *appearCharacs, const PDFRectangle *rect, const GooString *appearState,
-                             XRef *xref, bool *addedDingbatsResource);
-    bool drawFormFieldText(const FormFieldText *fieldText, const Form *form, const GfxResources *resources, const GooString *da, const AnnotBorder *border, const AnnotAppearanceCharacs *appearCharacs, const PDFRectangle *rect);
-    bool drawFormFieldChoice(const FormFieldChoice *fieldChoice, const Form *form, const GfxResources *resources, const GooString *da, const AnnotBorder *border, const AnnotAppearanceCharacs *appearCharacs, const PDFRectangle *rect);
+                             XRef *xref, Dict *resourcesDict);
+    bool drawFormFieldText(const FormFieldText *fieldText, const Form *form, const GfxResources *resources, const GooString *da, const AnnotBorder *border, const AnnotAppearanceCharacs *appearCharacs, const PDFRectangle *rect, XRef *xref,
+                           Dict *resourcesDict);
+    bool drawFormFieldChoice(const FormFieldChoice *fieldChoice, const Form *form, const GfxResources *resources, const GooString *da, const AnnotBorder *border, const AnnotAppearanceCharacs *appearCharacs, const PDFRectangle *rect,
+                             XRef *xref, Dict *resourcesDict);
     bool drawSignatureFieldText(const FormFieldSignature *field, const Form *form, const GfxResources *resources, const GooString *da, const AnnotBorder *border, const AnnotAppearanceCharacs *appearCharacs, const PDFRectangle *rect,
                                 XRef *xref, Dict *resourcesDict);
+    void drawSignatureFieldText(const GooString &text, const DefaultAppearance &da, const AnnotBorder *border, const PDFRectangle *rect, XRef *xref, Dict *resourcesDict, double leftMargin, bool centerVertically, bool centerHorizontally);
     bool drawText(const GooString *text, const GooString *da, const GfxResources *resources, const AnnotBorder *border, const AnnotAppearanceCharacs *appearCharacs, const PDFRectangle *rect, bool multiline, int comb, int quadding,
-                  bool txField, bool forceZapfDingbats, XRef *xref, bool *addedDingbatsResource, // xref and addedDingbatsResource both must not be null if forceZapfDingbats is passed
-                  bool password);
+                  bool txField, bool forceZapfDingbats, XRef *xref, bool password, Dict *resourcesDict, const char *defaultFallback = "Helvetica");
     void drawArrowPath(double x, double y, const Matrix &m, int orientation = 1);
 
     GooString *appearBuf;
@@ -727,6 +742,8 @@ public:
     const GooString *getName() const { return name.get(); }
     const GooString *getModified() const { return modified.get(); }
     unsigned int getFlags() const { return flags; }
+    Object getAppearance() const;
+    void setNewAppearance(Object &&newAppearance);
     AnnotAppearance *getAppearStreams() const { return appearStreams.get(); }
     const GooString *getAppearState() const { return appearState.get(); }
     AnnotBorder *getBorder() const { return border.get(); }
@@ -750,8 +767,8 @@ private:
 protected:
     virtual ~Annot();
     virtual void removeReferencedObjects(); // Called by Page::removeAnnot
-    Object createForm(const GooString *appearBuf, double *bbox, bool transparencyGroup, Dict *resDict);
-    Object createForm(const GooString *appearBuf, double *bbox, bool transparencyGroup, Object &&resDictObject); // overload to support incRef/decRef
+    Object createForm(const GooString *appearBuf, const double *bbox, bool transparencyGroup, Dict *resDict);
+    Object createForm(const GooString *appearBuf, const double *bbox, bool transparencyGroup, Object &&resDictObject); // overload to support incRef/decRef
     Dict *createResourcesDict(const char *formName, Object &&formStream, const char *stateName, double opacity, const char *blendMode);
     bool isVisible(bool printing);
     int getRotation() const;
@@ -1191,15 +1208,25 @@ public:
     AnnotStamp(PDFDoc *docA, Object &&dictObject, const Object *obj);
     ~AnnotStamp() override;
 
+    void draw(Gfx *gfx, bool printing) override;
+
     void setIcon(GooString *new_icon);
+
+    void setCustomImage(AnnotStampImageHelper *stampImageHelperA);
+
+    void clearCustomImage();
 
     // getters
     const GooString *getIcon() const { return icon.get(); }
 
 private:
     void initialize(PDFDoc *docA, Dict *dict);
+    void generateStampDefaultAppearance();
+    void generateStampCustomAppearance();
 
     std::unique_ptr<GooString> icon; // Name       (Default Draft)
+    AnnotStampImageHelper *stampImageHelper;
+    Ref updatedAppearanceStream;
 };
 
 //------------------------------------------------------------------------
@@ -1422,7 +1449,7 @@ public:
     void draw(Gfx *gfx, bool printing) override;
     void invalidateAppearance() override;
 
-    void generateFieldAppearance(bool *addedDingbatsResource);
+    void generateFieldAppearance();
     void updateAppearanceStream();
 
     AnnotWidgetHighlightMode getMode() { return mode; }
@@ -1432,7 +1459,6 @@ public:
     std::unique_ptr<LinkAction> getAdditionalAction(AdditionalActionsType type);
     std::unique_ptr<LinkAction> getFormAdditionalAction(FormAdditionalActionsType type);
     Dict *getParent() { return parent; }
-    void setNewAppearance(Object &&newAppearance);
 
     bool setFormAdditionalAction(FormAdditionalActionsType type, const GooString &js);
 
@@ -1493,7 +1519,7 @@ class Annot3D : public Annot
             dStateLive // L
         };
 
-        Activation(Dict *dict);
+        explicit Activation(Dict *dict);
 
     private:
         ActivationATrigger aTrigger; // A   (Default XA)
@@ -1527,7 +1553,7 @@ public:
     class POPPLER_PRIVATE_EXPORT Params
     {
     public:
-        Params(Dict *dict);
+        explicit Params(Dict *dict);
         ~Params();
 
         Params(const Params &) = delete;
@@ -1551,7 +1577,7 @@ public:
             typeVideo // Video
         };
 
-        Instance(Dict *dict);
+        explicit Instance(Dict *dict);
         ~Instance();
 
         Instance(const Instance &) = delete;
@@ -1577,7 +1603,7 @@ public:
             typeVideo // Video
         };
 
-        Configuration(Dict *dict);
+        explicit Configuration(Dict *dict);
         ~Configuration();
 
         Configuration(const Configuration &) = delete;
@@ -1620,7 +1646,7 @@ public:
     class POPPLER_PRIVATE_EXPORT Content
     {
     public:
-        Content(Dict *dict);
+        explicit Content(Dict *dict);
         ~Content();
 
         Content(const Content &) = delete;
@@ -1651,7 +1677,7 @@ public:
             conditionUserAction // XA
         };
 
-        Activation(Dict *dict);
+        explicit Activation(Dict *dict);
 
         Condition getCondition() const;
 
@@ -1670,7 +1696,7 @@ public:
             conditionUserAction // XD
         };
 
-        Deactivation(Dict *dict);
+        explicit Deactivation(Dict *dict);
 
         Condition getCondition() const;
 
@@ -1682,7 +1708,7 @@ public:
     class POPPLER_PRIVATE_EXPORT Settings
     {
     public:
-        Settings(Dict *dict);
+        explicit Settings(Dict *dict);
         ~Settings();
 
         Settings(const Settings &) = delete;

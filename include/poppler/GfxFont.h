@@ -13,7 +13,7 @@
 // All changes made under the Poppler project to this file are licensed
 // under GPL version 2 or later
 //
-// Copyright (C) 2005, 2008, 2015, 2017-2020 Albert Astals Cid <aacid@kde.org>
+// Copyright (C) 2005, 2008, 2015, 2017-2021 Albert Astals Cid <aacid@kde.org>
 // Copyright (C) 2006 Takashi Iwai <tiwai@suse.de>
 // Copyright (C) 2006 Kristian Høgsberg <krh@redhat.com>
 // Copyright (C) 2007 Julien Rebetez <julienr@svn.gnome.org>
@@ -24,6 +24,7 @@
 // Copyright (C) 2015, 2018 Jason Crain <jason@aquaticape.us>
 // Copyright (C) 2015 Thomas Freitag <Thomas.Freitag@alfa.de>
 // Copyright (C) 2018 Klarälvdalens Datakonsult AB, a KDAB Group company, <info@kdab.com>. Work sponsored by the LiMux project of the city of Munich
+// Copyright (C) 2021 Oliver Sander <oliver.sander@tu-dresden.de>
 //
 // To see a description of the changes please see the Changelog file that
 // came with your tarball or type make ChangeLog if you are building from git
@@ -32,6 +33,8 @@
 
 #ifndef GFXFONT_H
 #define GFXFONT_H
+
+#include <optional>
 
 #include "goo/GooString.h"
 #include "Object.h"
@@ -118,22 +121,25 @@ public:
     ~GfxFontLoc();
 
     GfxFontLoc(const GfxFontLoc &) = delete;
+    GfxFontLoc(GfxFontLoc &&) noexcept;
     GfxFontLoc &operator=(const GfxFontLoc &) = delete;
+    GfxFontLoc &operator=(GfxFontLoc &&other) noexcept;
+
+    // Set the 'path' string from a GooString on the heap.
+    // Ownership of the object is taken.
+    void setPath(GooString *pathA);
+    const GooString *pathAsGooString() const;
 
     GfxFontLocType locType;
     GfxFontType fontType;
     Ref embFontID; // embedded stream obj ID
                    //   (if locType == gfxFontLocEmbedded)
-    GooString *path; // font file path
-                     //   (if locType == gfxFontLocExternal)
-                     // PS font name
-                     //   (if locType == gfxFontLocResident)
+    std::string path; // font file path
+                      //   (if locType == gfxFontLocExternal)
+                      // PS font name
+                      //   (if locType == gfxFontLocResident)
     int fontNum; // for TrueType collections
                  //   (if locType == gfxFontLocExternal)
-    GooString *encoding; // PS font encoding, only for 16-bit fonts
-                         //   (if locType == gfxFontLocResident)
-    int wMode; // writing mode, only for 16-bit fonts
-               //   (if locType == gfxFontLocResident)
     int substIdx; // substitute font index
                   //   (if locType == gfxFontLocExternal,
                   //   and a Base-14 substitution was made)
@@ -192,13 +198,13 @@ public:
     void decRefCnt();
 
     // Get font tag.
-    const GooString *getTag() const { return tag; }
+    const std::string &getTag() const { return tag; }
 
     // Get font dictionary ID.
     const Ref *getID() const { return &id; }
 
     // Does this font match the tag?
-    bool matches(const char *tagA) const { return !tag->cmp(tagA); }
+    bool matches(const char *tagA) const { return tag == tagA; }
 
     // Get font family name.
     GooString *getFamily() const { return family; }
@@ -270,11 +276,11 @@ public:
     virtual int getWMode() { return 0; }
 
     // Locate the font file for this font.  If <ps> is not null, includes PS
-    // printer-resident fonts.  Returns NULL on failure.
-    GfxFontLoc *locateFont(XRef *xref, PSOutputDev *ps);
+    // printer-resident fonts.  Returns std::optional without a value on failure.
+    std::optional<GfxFontLoc> locateFont(XRef *xref, PSOutputDev *ps);
 
     // Locate a Base-14 font file for a specified font name.
-    static GfxFontLoc *locateBase14Font(const GooString *base14Name);
+    static std::optional<GfxFontLoc> locateBase14Font(const GooString *base14Name);
 
     // Read an external or embedded font file into a buffer.
     char *readEmbFontFile(XRef *xref, int *len);
@@ -291,7 +297,7 @@ public:
     bool hasToUnicodeCMap() const { return hasToUnicode; }
 
     // Return the name of the encoding
-    GooString *getEncodingName() const { return encodingName; }
+    const std::string &getEncodingName() const { return encodingName; }
 
     // Return AGLFN names of ligatures in the Standard and Expert encodings
     // for use with fonts that are not compatible with the Standard 14 fonts.
@@ -306,15 +312,15 @@ protected:
     static GfxFontType getFontType(XRef *xref, Dict *fontDict, Ref *embID);
     void readFontDescriptor(XRef *xref, Dict *fontDict);
     CharCodeToUnicode *readToUnicodeCMap(Dict *fontDict, int nBits, CharCodeToUnicode *ctu);
-    static GfxFontLoc *getExternalFont(GooString *path, bool cid);
+    static std::optional<GfxFontLoc> getExternalFont(GooString *path, bool cid);
 
-    GooString *tag; // PDF font tag
-    Ref id; // reference (used as unique ID)
+    const std::string tag; // PDF font tag
+    const Ref id; // reference (used as unique ID)
     const GooString *name; // font name
     GooString *family; // font family
     Stretch stretch; // font stretch
     Weight weight; // font weight
-    GfxFontType type; // type of font
+    const GfxFontType type; // type of font
     int flags; // font descriptor flags
     GooString *embFontName; // name of embedded font
     Ref embFontID; // ref to embedded font file stream
@@ -326,7 +332,7 @@ protected:
     int refCnt;
     bool ok;
     bool hasToUnicode;
-    GooString *encodingName;
+    std::string encodingName;
 };
 
 //------------------------------------------------------------------------
@@ -454,11 +460,11 @@ public:
     GfxFontDict &operator=(const GfxFontDict &) = delete;
 
     // Get the specified font.
-    GfxFont *lookup(const char *tag);
+    GfxFont *lookup(const char *tag) const;
 
     // Iterative access.
-    int getNumFonts() { return numFonts; }
-    GfxFont *getFont(int i) { return fonts[i]; }
+    int getNumFonts() const { return numFonts; }
+    GfxFont *getFont(int i) const { return fonts[i]; }
 
 private:
     int hashFontObject(Object *obj);

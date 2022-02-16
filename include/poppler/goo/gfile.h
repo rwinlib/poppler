@@ -16,7 +16,7 @@
 // under GPL version 2 or later
 //
 // Copyright (C) 2006 Kristian Høgsberg <krh@redhat.com>
-// Copyright (C) 2009, 2011, 2012, 2017, 2018 Albert Astals Cid <aacid@kde.org>
+// Copyright (C) 2009, 2011, 2012, 2017, 2018, 2021 Albert Astals Cid <aacid@kde.org>
 // Copyright (C) 2009 Kovid Goyal <kovid@kovidgoyal.net>
 // Copyright (C) 2013 Adam Reichold <adamreichold@myopera.com>
 // Copyright (C) 2013, 2017 Adrian Johnson <ajohnson@redneon.com>
@@ -25,7 +25,7 @@
 // Copyright (C) 2017 Christoph Cullmann <cullmann@kde.org>
 // Copyright (C) 2017 Thomas Freitag <Thomas.Freitag@alfa.de>
 // Copyright (C) 2018 Mojca Miklavec <mojca@macports.org>
-// Copyright (C) 2019 Christian Persch <chpe@src.gnome.org>
+// Copyright (C) 2019, 2021 Christian Persch <chpe@src.gnome.org>
 //
 // To see a description of the changes please see the Changelog file that
 // came with your tarball or type make ChangeLog if you are building from git
@@ -41,6 +41,7 @@
 #include <cstdlib>
 #include <cstddef>
 #include <ctime>
+#include <string>
 extern "C" {
 #if defined(_WIN32)
 #    include <sys/stat.h>
@@ -121,7 +122,10 @@ public:
     int read(char *buf, int n, Goffset offset) const;
     Goffset size() const;
 
-    static GooFile *open(const GooString *fileName);
+    static GooFile *open(const std::string &fileName);
+#ifndef _WIN32
+    static GooFile *open(int fdA);
+#endif
 
 #ifdef _WIN32
     static GooFile *open(const wchar_t *fileName);
@@ -141,7 +145,7 @@ private:
     bool modificationTimeChangedSinceOpen() const;
 
 private:
-    GooFile(int fdA);
+    explicit GooFile(int fdA);
     int fd;
     struct timespec modifiedTimeOnOpen;
 #endif // _WIN32

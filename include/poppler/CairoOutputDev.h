@@ -26,6 +26,7 @@
 // Copyright (C) 2018, 2019, 2021 Albert Astals Cid <aacid@kde.org>
 // Copyright (C) 2018 Klarälvdalens Datakonsult AB, a KDAB Group company, <info@kdab.com>. Work sponsored by the LiMux project of the city of Munich
 // Copyright (C) 2020 Michal <sudolskym@gmail.com>
+// Copyright (C) 2021 Christian Persch <chpe@src.gnome.org>
 //
 // To see a description of the changes please see the Changelog file that
 // came with your tarball or type make ChangeLog if you are building from git
@@ -238,7 +239,7 @@ public:
         printing = printingA;
         needFontUpdate = true;
     }
-    void setAntialias(cairo_antialias_t antialias);
+    void copyAntialias(cairo_t *cr, cairo_t *source_cr);
 
     void setInType3Char(bool inType3CharA) { inType3Char = inType3CharA; }
     void getType3GlyphWidth(double *wx, double *wy)
@@ -264,7 +265,6 @@ protected:
 #if CAIRO_VERSION >= CAIRO_VERSION_ENCODE(1, 15, 10)
     bool setMimeDataForCCITTParams(Stream *str, cairo_surface_t *image, int height);
 #endif
-    static void setContextAntialias(cairo_t *cr, cairo_antialias_t antialias);
 
     GfxRGB fill_color, stroke_color;
     cairo_pattern_t *fill_pattern, *stroke_pattern;
@@ -317,7 +317,6 @@ protected:
     double t3_glyph_wx, t3_glyph_wy;
     bool t3_glyph_has_bbox;
     double t3_glyph_bbox[4];
-    cairo_antialias_t antialias;
     bool prescaleImages;
 
     TextPage *textPage; // text for the current page

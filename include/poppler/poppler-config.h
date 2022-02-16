@@ -36,7 +36,7 @@
 
 /* Defines the poppler version. */
 #ifndef POPPLER_VERSION
-#define POPPLER_VERSION "21.04.0"
+#define POPPLER_VERSION "22.02.0"
 #endif
 
 /* Use single precision arithmetic in the Splash backend */
@@ -117,17 +117,12 @@
 /* #undef USE_BOOST_HEADERS */
 #endif
 
-/* Is splash backend available */
-#ifndef HAVE_SPLASH
-#define HAVE_SPLASH 1
-#endif
-
 //------------------------------------------------------------------------
 // version
 //------------------------------------------------------------------------
 
 // copyright notice
-#define popplerCopyright "Copyright 2005-2021 The Poppler Developers - http://poppler.freedesktop.org"
+#define popplerCopyright "Copyright 2005-2022 The Poppler Developers - http://poppler.freedesktop.org"
 #define xpdfCopyright "Copyright 1996-2011 Glyph & Cog, LLC"
 
 //------------------------------------------------------------------------

@@ -61,7 +61,7 @@ class SplashFunctionPattern : public SplashPattern
 public:
     SplashFunctionPattern(SplashColorMode colorMode, GfxState *state, GfxFunctionShading *shading);
 
-    SplashPattern *copy() override { return new SplashFunctionPattern(colorMode, state, (GfxFunctionShading *)shading); }
+    SplashPattern *copy() const override { return new SplashFunctionPattern(colorMode, state, (GfxFunctionShading *)shading); }
 
     ~SplashFunctionPattern() override;
 
@@ -117,7 +117,7 @@ class SplashAxialPattern : public SplashUnivariatePattern
 public:
     SplashAxialPattern(SplashColorMode colorMode, GfxState *state, GfxAxialShading *shading);
 
-    SplashPattern *copy() override { return new SplashAxialPattern(colorMode, state, (GfxAxialShading *)shading); }
+    SplashPattern *copy() const override { return new SplashAxialPattern(colorMode, state, (GfxAxialShading *)shading); }
 
     ~SplashAxialPattern() override;
 
@@ -134,7 +134,7 @@ class SplashGouraudPattern : public SplashGouraudColor
 public:
     SplashGouraudPattern(bool bDirectColorTranslation, GfxState *state, GfxGouraudTriangleShading *shading);
 
-    SplashPattern *copy() override { return new SplashGouraudPattern(bDirectColorTranslation, state, shading); }
+    SplashPattern *copy() const override { return new SplashGouraudPattern(bDirectColorTranslation, state, shading); }
 
     ~SplashGouraudPattern() override;
 
@@ -170,7 +170,7 @@ class SplashRadialPattern : public SplashUnivariatePattern
 public:
     SplashRadialPattern(SplashColorMode colorMode, GfxState *state, GfxRadialShading *shading);
 
-    SplashPattern *copy() override { return new SplashRadialPattern(colorMode, state, (GfxRadialShading *)shading); }
+    SplashPattern *copy() const override { return new SplashRadialPattern(colorMode, state, (GfxRadialShading *)shading); }
 
     ~SplashRadialPattern() override;
 
@@ -194,8 +194,7 @@ class POPPLER_PRIVATE_EXPORT SplashOutputDev : public OutputDev
 {
 public:
     // Constructor.
-    SplashOutputDev(SplashColorMode colorModeA, int bitmapRowPadA, bool reverseVideoA, SplashColorPtr paperColorA, bool bitmapTopDownA = true, SplashThinLineMode thinLineMode = splashThinLineDefault,
-                    bool overprintPreviewA = globalParams->getOverprintPreview());
+    SplashOutputDev(SplashColorMode colorModeA, int bitmapRowPadA, bool reverseVideoA, SplashColorPtr paperColorA, bool bitmapTopDownA = true, SplashThinLineMode thinLineMode = splashThinLineDefault, bool overprintPreviewA = false);
 
     // Destructor.
     ~SplashOutputDev() override;

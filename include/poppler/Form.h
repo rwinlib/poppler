@@ -6,7 +6,7 @@
 //
 // Copyright 2006 Julien Rebetez <julienr@svn.gnome.org>
 // Copyright 2007, 2008, 2011 Carlos Garcia Campos <carlosgc@gnome.org>
-// Copyright 2007-2010, 2012, 2015-2021 Albert Astals Cid <aacid@kde.org>
+// Copyright 2007-2010, 2012, 2015-2022 Albert Astals Cid <aacid@kde.org>
 // Copyright 2010 Mark Riedesel <mark@klowner.com>
 // Copyright 2011 Pino Toscano <pino@kde.org>
 // Copyright 2012 Fabio D'Urso <fabiodurso@hotmail.it>
@@ -24,6 +24,8 @@
 // Copyright 2020 Marek Kasik <mkasik@redhat.com>
 // Copyright 2020 Thorsten Behrens <Thorsten.Behrens@CIB.de>
 // Copyright 2020 Klarälvdalens Datakonsult AB, a KDAB Group company, <info@kdab.com>. Work sponsored by Technische Universität Dresden
+// Copyright 2021 Georgiy Sgibnev <georgiy@sgibnev.com>. Work sponsored by lab50.net.
+// Copyright 2021 Theofilos Intzoglou <int.teo@gmail.com>
 //
 //========================================================================
 
@@ -36,6 +38,7 @@
 
 #include <ctime>
 
+#include <optional>
 #include <set>
 #include <vector>
 
@@ -80,7 +83,8 @@ enum FormSignatureType
     adbe_pkcs7_sha1,
     adbe_pkcs7_detached,
     ETSI_CAdES_detached,
-    unknown_signature_type
+    unknown_signature_type,
+    unsigned_signature_field
 };
 
 enum FillValueType
@@ -295,30 +299,37 @@ public:
     void setSignatureType(FormSignatureType fst);
 
     // Use -1 for now as validationTime
-    SignatureInfo *validateSignature(bool doVerifyCert, bool forceRevalidation, time_t validationTime);
+    SignatureInfo *validateSignature(bool doVerifyCert, bool forceRevalidation, time_t validationTime, bool ocspRevocationCheck, bool enableAIA);
 
     // returns a list with the boundaries of the signed ranges
     // the elements of the list are of type Goffset
     std::vector<Goffset> getSignedRangeBounds() const;
 
-    // creates or replaces the dictionary name "V" in the signature dictionary and
+    // Creates or replaces the dictionary name "V" in the signature dictionary and
     // fills it with the fields of the signature; the field "Contents" is the signature
     // in PKCS#7 format, which is calculated over the byte range encompassing the whole
     // document except for the signature itself; this byte range is specified in the
-    // field "ByteRange" in the dictionary "V"
-    // return success
-    bool signDocument(const char *filename, const char *certNickname, const char *digestName, const char *password, const char *reason = nullptr);
+    // field "ByteRange" in the dictionary "V".
+    // Arguments reason and location are UTF-16 big endian strings with BOM. An empty string and nullptr are acceptable too.
+    // Returns success.
+    bool signDocument(const char *filename, const char *certNickname, const char *digestName, const char *password, const GooString *reason = nullptr, const GooString *location = nullptr, const GooString *ownerPassword = nullptr,
+                      const GooString *userPassword = nullptr);
+
+    // Same as above but adds text, font color, etc.
+    bool signDocumentWithAppearance(const char *filename, const char *certNickname, const char *digestName, const char *password, const GooString *reason = nullptr, const GooString *location = nullptr,
+                                    const GooString *ownerPassword = nullptr, const GooString *userPassword = nullptr, const GooString &signatureText = {}, const GooString &signatureTextLeft = {}, double fontSize = {},
+                                    std::unique_ptr<AnnotColor> &&fontColor = {}, double borderWidth = {}, std::unique_ptr<AnnotColor> &&borderColor = {}, std::unique_ptr<AnnotColor> &&backgroundColor = {});
 
     // checks the length encoding of the signature and returns the hex encoded signature
     // if the check passed (and the checked file size as output parameter in checkedFileSize)
     // otherwise a nullptr is returned
-    GooString *getCheckedSignature(Goffset *checkedFileSize);
+    std::optional<GooString> getCheckedSignature(Goffset *checkedFileSize);
 
     const GooString *getSignature() const;
 
 private:
-    bool createSignature(Object &vObj, Ref vRef, const GooString &name, const GooString &reason, const GooString *signature);
-    bool getObjectStartEnd(GooString *filename, int objNum, Goffset *objStart, Goffset *objEnd);
+    bool createSignature(Object &vObj, Ref vRef, const GooString &name, const GooString *signature, const GooString *reason = nullptr, const GooString *location = nullptr);
+    bool getObjectStartEnd(GooString *filename, int objNum, Goffset *objStart, Goffset *objEnd, const GooString *ownerPassword, const GooString *userPassword);
     bool updateOffsets(FILE *f, Goffset objStart, Goffset objEnd, Goffset *sigStart, Goffset *sigEnd, Goffset *fileSize);
 
     bool updateSignature(FILE *f, Goffset sigStart, Goffset sigEnd, const GooString *signature);
@@ -349,6 +360,8 @@ public:
     bool isStandAlone() const { return standAlone; }
 
     GooString *getDefaultAppearance() const { return defaultAppearance; }
+    void setDefaultAppearance(const std::string &appearance);
+
     bool hasTextQuadding() const { return hasQuadding; }
     VariableTextQuadding getTextQuadding() const { return quadding; }
 
@@ -493,10 +506,10 @@ public:
     void print(int indent) override;
     void reset(const std::vector<std::string> &excludedFields) override;
 
-    static int tokenizeDA(const GooString *daString, std::vector<GooString *> *daToks, const char *searchTok);
+    static int tokenizeDA(const std::string &daString, std::vector<std::string> *daToks, const char *searchTok);
 
 protected:
-    int parseDA(std::vector<GooString *> *daToks);
+    int parseDA(std::vector<std::string> *daToks);
     void fillContent(FillValueType fillType);
 
     GooString *content;
@@ -594,7 +607,7 @@ public:
     FormFieldSignature(PDFDoc *docA, Object &&dict, const Ref ref, FormField *parent, std::set<int> *usedParents);
 
     // Use -1 for now as validationTime
-    SignatureInfo *validateSignature(bool doVerifyCert, bool forceRevalidation, time_t validationTime);
+    SignatureInfo *validateSignature(bool doVerifyCert, bool forceRevalidation, time_t validationTime, bool ocspRevocationCheck, bool enableAIA);
 
     // returns a list with the boundaries of the signed ranges
     // the elements of the list are of type Goffset
@@ -603,7 +616,7 @@ public:
     // checks the length encoding of the signature and returns the hex encoded signature
     // if the check passed (and the checked file size as output parameter in checkedFileSize)
     // otherwise a nullptr is returned
-    GooString *getCheckedSignature(Goffset *checkedFileSize);
+    std::optional<GooString> getCheckedSignature(Goffset *checkedFileSize);
 
     ~FormFieldSignature() override;
     Object *getByteRange() { return &byte_range; }
@@ -614,6 +627,16 @@ public:
 
     const GooString &getCustomAppearanceContent() const;
     void setCustomAppearanceContent(const GooString &s);
+
+    const GooString &getCustomAppearanceLeftContent() const;
+    void setCustomAppearanceLeftContent(const GooString &s);
+
+    double getCustomAppearanceLeftFontSize() const;
+    void setCustomAppearanceLeftFontSize(double size);
+
+    // Background image (ref to an object of type XObject). Invalid ref if not required.
+    Ref getImageResource() const;
+    void setImageResource(const Ref imageResourceA);
 
     void setCertificateInfo(std::unique_ptr<X509CertificateInfo> &);
 
@@ -628,6 +651,9 @@ private:
     GooString *signature;
     SignatureInfo *signature_info;
     GooString customAppearanceContent;
+    GooString customAppearanceLeftContent;
+    double customAppearanceLeftFontSize = 20;
+    Ref imageResource = Ref::INVALID();
     std::unique_ptr<X509CertificateInfo> certificate_info;
 
     void print(int indent) override;

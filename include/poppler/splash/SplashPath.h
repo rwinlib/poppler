@@ -11,7 +11,7 @@
 // All changes made under the Poppler project to this file are licensed
 // under GPL version 2 or later
 //
-// Copyright (C) 2018, 2019 Albert Astals Cid <aacid@kde.org>
+// Copyright (C) 2018, 2019, 2021 Albert Astals Cid <aacid@kde.org>
 // Copyright (C) 2018 Stefan Brüns <stefan.bruens@rwth-aachen.de>
 //
 // To see a description of the changes please see the Changelog file that
@@ -70,10 +70,6 @@ class POPPLER_PRIVATE_EXPORT SplashPath
 public:
     // Create an empty path.
     SplashPath();
-
-    // Copy a path.
-    SplashPath *copy() { return new SplashPath(this); }
-
     ~SplashPath();
 
     SplashPath(const SplashPath &) = delete;
@@ -122,7 +118,6 @@ public:
     void reserve(int n);
 
 protected:
-    SplashPath(SplashPath *path);
     void grow(int nPts);
     bool noCurrentPoint() { return curSubpath == length; }
     bool onePointSubpath() { return curSubpath == length - 1; }

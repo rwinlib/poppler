@@ -14,7 +14,7 @@
 // under GPL version 2 or later
 //
 // Copyright (C) 2005 Kristian Høgsberg <krh@redhat.com>
-// Copyright (C) 2005, 2007, 2009-2011, 2013, 2017-2021 Albert Astals Cid <aacid@kde.org>
+// Copyright (C) 2005, 2007, 2009-2011, 2013, 2017-2022 Albert Astals Cid <aacid@kde.org>
 // Copyright (C) 2005 Jonathan Blandford <jrb@redhat.com>
 // Copyright (C) 2005, 2006, 2008 Brad Hards <bradh@frogmouth.net>
 // Copyright (C) 2007 Julien Rebetez <julienr@svn.gnome.org>
@@ -46,8 +46,9 @@
 #include "Object.h"
 #include "Link.h"
 
-#include <vector>
 #include <memory>
+#include <optional>
+#include <vector>
 
 class PDFDoc;
 class XRef;
@@ -132,7 +133,7 @@ public:
     Ref *getPageRef(int i);
 
     // Return base URI, or NULL if none.
-    GooString *getBaseURI() { return baseURI; }
+    const std::optional<std::string> &getBaseURI() const { return baseURI; }
 
     // Return the contents of the metadata stream, or NULL if there is
     // no metadata.
@@ -183,7 +184,7 @@ public:
     int numEmbeddedFiles() { return getEmbeddedFileNameTree()->numEntries(); }
 
     // Get the i'th file embedded (at the Document level) in the document
-    FileSpec *embeddedFile(int i);
+    std::unique_ptr<FileSpec> embeddedFile(int i);
 
     // Is there an embedded file with the given name?
     bool hasEmbeddedFile(const std::string &fileName);
@@ -285,7 +286,7 @@ private:
     NameTree *destNameTree; // named destination name-tree
     NameTree *embeddedFileNameTree; // embedded file name-tree
     NameTree *jsNameTree; // Java Script name-tree
-    GooString *baseURI; // base URI for URI-type links
+    std::optional<std::string> baseURI; // base URI for URI-type links
     Object metadata; // metadata stream
     StructTreeRoot *structTreeRoot; // structure tree root
     unsigned int markInfo; // Flags from MarkInfo dictionary

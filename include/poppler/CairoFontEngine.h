@@ -21,6 +21,7 @@
 // Copyright (C) 2008, 2017 Adrian Johnson <ajohnson@redneon.com>
 // Copyright (C) 2013 Thomas Freitag <Thomas.Freitag@alfa.de>
 // Copyright (C) 2018 Adam Reichold <adam.reichold@t-online.de>
+// Copyright (C) 2022 Oliver Sander <oliver.sander@tu-dresden.de>
 //
 // To see a description of the changes please see the Changelog file that
 // came with your tarball or type make ChangeLog if you are building from git
@@ -83,7 +84,7 @@ private:
 class CairoType3Font : public CairoFont
 {
 public:
-    static CairoType3Font *create(GfxFont *gfxFont, PDFDoc *doc, CairoFontEngine *fontEngine, bool printing, XRef *xref);
+    static CairoType3Font *create(const std::shared_ptr<const GfxFont> &gfxFont, PDFDoc *doc, CairoFontEngine *fontEngine, bool printing, XRef *xref);
     ~CairoType3Font() override;
 
     bool matches(Ref &other, bool printing) override;
@@ -109,7 +110,7 @@ public:
     CairoFontEngine(const CairoFontEngine &) = delete;
     CairoFontEngine &operator=(const CairoFontEngine &other) = delete;
 
-    CairoFont *getFont(GfxFont *gfxFont, PDFDoc *doc, bool printing, XRef *xref);
+    CairoFont *getFont(const std::shared_ptr<GfxFont> &gfxFont, PDFDoc *doc, bool printing, XRef *xref);
 
 private:
     CairoFont *fontCache[cairoFontCacheSize];

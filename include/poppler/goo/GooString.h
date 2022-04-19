@@ -17,7 +17,7 @@
 //
 // Copyright (C) 2006 Kristian Høgsberg <krh@redhat.com>
 // Copyright (C) 2006 Krzysztof Kowalczyk <kkowalczyk@gmail.com>
-// Copyright (C) 2008-2010, 2012, 2014, 2017-2021 Albert Astals Cid <aacid@kde.org>
+// Copyright (C) 2008-2010, 2012, 2014, 2017-2022 Albert Astals Cid <aacid@kde.org>
 // Copyright (C) 2012-2014 Fabio D'Urso <fabiodurso@hotmail.it>
 // Copyright (C) 2013 Jason Crain <jason@aquaticape.us>
 // Copyright (C) 2015, 2018 Adam Reichold <adam.reichold@t-online.de>
@@ -29,6 +29,7 @@
 // Copyright (C) 2019, 2020 Oliver Sander <oliver.sander@tu-dresden.de>
 // Copyright (C) 2019 Hans-Ulrich Jüttner <huj@froreich-bioscientia.de>
 // Copyright (C) 2020 Thorsten Behrens <Thorsten.Behrens@CIB.de>
+// Copyright (C) 2022 Even Rouault <even.rouault@spatialys.com>
 //
 // To see a description of the changes please see the Changelog file that
 // came with your tarball or type make ChangeLog if you are building from git
@@ -41,6 +42,7 @@
 #include "poppler_private_export.h"
 
 #include <cstdarg>
+#include <memory>
 #include <string>
 
 #ifdef __clang__
@@ -49,7 +51,7 @@
 #    define GOOSTRING_FORMAT
 #endif
 
-class POPPLER_PRIVATE_EXPORT GooString : private std::string
+class GooString : private std::string
 {
 public:
     // Create an empty string.
@@ -138,8 +140,8 @@ public:
     //     t -- GooString *
     //     w -- blank space; arg determines width
     // To get literal curly braces, use {{ or }}.
-    static GooString *format(const char *fmt, ...) GOOSTRING_FORMAT;
-    static GooString *formatv(const char *fmt, va_list argList);
+    POPPLER_PRIVATE_EXPORT static std::unique_ptr<GooString> format(const char *fmt, ...) GOOSTRING_FORMAT;
+    POPPLER_PRIVATE_EXPORT static std::unique_ptr<GooString> formatv(const char *fmt, va_list argList);
 
     // Get length.
     int getLength() const { return size(); }
@@ -188,8 +190,8 @@ public:
     }
 
     // Append a formatted string.
-    GooString *appendf(const char *fmt, ...) GOOSTRING_FORMAT;
-    GooString *appendfv(const char *fmt, va_list argList);
+    POPPLER_PRIVATE_EXPORT GooString *appendf(const char *fmt, ...) GOOSTRING_FORMAT;
+    POPPLER_PRIVATE_EXPORT GooString *appendfv(const char *fmt, va_list argList);
 
     // Insert a character or string.
     GooString *insert(int i, char c)
@@ -221,7 +223,11 @@ public:
     }
 
     // Convert string to all-lower case.
-    GooString *lowerCase();
+    POPPLER_PRIVATE_EXPORT GooString *lowerCase();
+    POPPLER_PRIVATE_EXPORT static void lowerCase(std::string &s);
+
+    // Returns a new string converted to all-lower case.
+    POPPLER_PRIVATE_EXPORT static std::string toLowerCase(const std::string &s);
 
     // Compare two strings:  -1:<  0:=  +1:>
     int cmp(const GooString *str) const { return compare(*str); }
@@ -231,9 +237,12 @@ public:
     int cmpN(const char *sA, int n) const { return compare(0, n, sA); }
 
     // Return true if strings starts with prefix
-    bool startsWith(const char *prefix) const;
+    POPPLER_PRIVATE_EXPORT bool startsWith(const char *prefix) const;
     // Return true if string ends with suffix
-    bool endsWith(const char *suffix) const;
+    POPPLER_PRIVATE_EXPORT bool endsWith(const char *suffix) const;
+
+    static bool startsWith(std::string_view str, std::string_view prefix) { return str.size() >= prefix.size() && 0 == str.compare(0, prefix.size(), prefix); }
+    static bool endsWith(std::string_view str, std::string_view suffix) { return str.size() >= suffix.size() && 0 == str.compare(str.size() - suffix.size(), suffix.size(), suffix); }
 
     bool hasUnicodeMarker() const { return hasUnicodeMarker(*this); }
     static bool hasUnicodeMarker(const std::string &s) { return s.size() >= 2 && s[0] == '\xfe' && s[1] == '\xff'; }
@@ -241,13 +250,13 @@ public:
     static bool hasUnicodeMarkerLE(const std::string &s) { return s.size() >= 2 && s[0] == '\xff' && s[1] == '\xfe'; }
     bool hasJustUnicodeMarker() const { return size() == 2 && hasUnicodeMarker(); }
 
-    void prependUnicodeMarker();
+    POPPLER_PRIVATE_EXPORT void prependUnicodeMarker();
 
     // Sanitizes the string so that it does
     // not contain any ( ) < > [ ] { } / %
     // The postscript mode also has some more strict checks
     // The caller owns the return value
-    GooString *sanitizedName(bool psmode) const;
+    POPPLER_PRIVATE_EXPORT GooString *sanitizedName(bool psmode) const;
 };
 
 #endif

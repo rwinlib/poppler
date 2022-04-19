@@ -23,7 +23,7 @@
 // Copyright (C) 2011-2014, 2016, 2020 Thomas Freitag <Thomas.Freitag@alfa.de>
 // Copyright (C) 2013 Lu Wang <coolwanglu@gmail.com>
 // Copyright (C) 2015, 2017, 2020 Adrian Johnson <ajohnson@redneon.com>
-// Copyright (C) 2017, 2019 Oliver Sander <oliver.sander@tu-dresden.de>
+// Copyright (C) 2017, 2019, 2022 Oliver Sander <oliver.sander@tu-dresden.de>
 // Copyright (C) 2018 Adam Reichold <adam.reichold@t-online.de>
 // Copyright (C) 2020, 2021 Philipp Knechtges <philipp-dev@knechtges.com>
 //
@@ -1504,7 +1504,7 @@ public:
     bool getStrokeAdjust() const { return strokeAdjust; }
     bool getAlphaIsShape() const { return alphaIsShape; }
     bool getTextKnockout() const { return textKnockout; }
-    GfxFont *getFont() const { return font; }
+    const std::shared_ptr<GfxFont> &getFont() const { return font; }
     double getFontSize() const { return fontSize; }
     const double *getTextMat() const { return textMat; }
     double getCharSpace() const { return charSpace; }
@@ -1585,7 +1585,7 @@ public:
     void setStrokeAdjust(bool sa) { strokeAdjust = sa; }
     void setAlphaIsShape(bool ais) { alphaIsShape = ais; }
     void setTextKnockout(bool tk) { textKnockout = tk; }
-    void setFont(GfxFont *fontA, double fontSizeA);
+    void setFont(std::shared_ptr<GfxFont> fontA, double fontSizeA);
     void setTextMat(double a, double b, double c, double d, double e, double f)
     {
         textMat[0] = a;
@@ -1720,7 +1720,7 @@ private:
     bool alphaIsShape; // alpha is shape
     bool textKnockout; // text knockout
 
-    GfxFont *font; // font
+    std::shared_ptr<GfxFont> font; // font
     double fontSize; // font size
     double textMat[6]; // text matrix
     double charSpace; // character spacing
